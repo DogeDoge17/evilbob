@@ -33,7 +33,8 @@
     // internet connectivity.
     .dependencies = .{
         .zig_minifb = .{
-            .path = "../zig-minifb"    
+            .url = "git+https://github.com/DogeDoge17/zig-minifb.git#f9a67d8dac10d1b3cb9f18ad2ff11e90b2bd4c06",
+            .hash = "zig_minifb-0.0.0-O0PEU9ubBgCo01ccVq5lTXAG2iEYnJqbLmvKFaZlsWUu",
         },
     },
     .paths = .{
