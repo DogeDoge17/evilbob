@@ -8,6 +8,9 @@ pub const Image = struct {
     width: usize,
     height: usize,
     pixels: []const u32,
+    pub fn deinit(self: *const Image, alloc: std.mem.Allocator) void {
+        alloc.free(self.pixels);
+    }
 };
 //
 // fn sanitizeName(comptime name: []const u8) []const u8 {

@@ -1,5 +1,5 @@
 const std = @import("std");
-const images = @import("image.zig");
+pub const img = @import("image.zig");
 
 /// Accessing the buffer is not thread safe
 pub var buffer: []u32 = &[_]u32{};
@@ -24,6 +24,26 @@ const ScaleDirection = enum(u8) {
     down
 };
 
+// fragment shader function pointer
+pub const fragment_shader = *const fn(tex: u32, args: program_args) u32;
+
+pub const program = struct {
+    fragment: fragment_shader,
+    args: program_args,
+};
+
+pub const program_args = struct {
+    u1: u32 = 0,
+    u2: u32 = 0,
+    u3: u32 = 0,
+    f1: f32 = 0,
+    f2: f32 = 0,
+    f3: f32 = 0,
+    i1: i32 = 0,
+    i2: i32 = 0,
+    i3: i32 = 0,   
+};
+
 pub inline fn setBuffer(newBuffer: []u32, newWidth: usize, newHeight:usize) void {
     buffer = newBuffer;
     width = newWidth;
@@ -32,6 +52,13 @@ pub inline fn setBuffer(newBuffer: []u32, newWidth: usize, newHeight:usize) void
 
 pub inline fn queueSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
     threadPool.spawnWg(&waitGroup, drawSolidVLine, .{color, x, y, end});
+}
+
+pub inline fn queueTexSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    threadPool.spawnWg(&waitGroup, drawTexSVLine, .{src_col, shader, x, y, destHeight, srcHeight});
+}
+pub inline fn queueTexBVLine(src_col: []const u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    threadPool.spawnWg(&waitGroup, drawTexBVLine, .{src_col, x, y, destHeight, srcHeight});
 }
 
 pub fn drawSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
@@ -44,11 +71,11 @@ pub fn drawSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
     }
 }
 
-pub inline fn queueBlit(src: *const images.Image, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
+pub inline fn queueBlit(src: *const img.Image, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
     threadPool.spawnWg(&waitGroup, _tBlit, .{src, x, y, destWidth, destHeight});
 }
 
-fn _tBlit(src: *const images.Image, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
+fn _tBlit(src: *const img.Image, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
     if (destWidth == 0 or destHeight == 0) return;
     const sw = src.width;
     const sh = src.height;
@@ -59,11 +86,11 @@ fn _tBlit(src: *const images.Image, x: usize, y: usize, destWidth: usize, destHe
         const row_index = sh - 1 - xu;
         const row = src.pixels[row_index * sw .. (row_index + 1) * sw];
 
-        threadPool.spawnWg(&waitGroup, drawTexVLine,.{row,x + dx, y,destHeight, sw});
+        threadPool.spawnWg(&waitGroup, drawTexBVLine,.{row,x + dx, y,destHeight, sw});
     }
 }
 
-pub fn blit(src: *const images.Image, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
+pub fn blit(src: *const img.Image, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
     if (destWidth == 0 or destHeight == 0) return;
     const sw = src.width;
     const sh = src.height;
@@ -74,17 +101,39 @@ pub fn blit(src: *const images.Image, x: usize, y: usize, destWidth: usize, dest
         const row_index = sh - 1 - xu;
         const row = src.pixels[row_index * sw .. (row_index + 1) * sw];
 
-        drawTexVLine(row,x + dx, y,destHeight, sw);
+        drawTexBVLine(row,x + dx, y,destHeight, sw);
     }
 }
 
-pub inline fn drawTexVLine(src_col: []const u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+pub inline fn drawTexBVLine(src_col: []const u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     for(0..destHeight) |dy| {
         const sy = (dy * srcHeight) / destHeight;
         const pixel = src_col[sy];
         const idx = (y + dy) * width + x;
 
         buffer[idx] = blendOver(buffer[idx], pixel);
+    }
+}
+
+pub inline fn drawTexCVLine(src_col: []const u32, color: u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    for(0..destHeight) |dy| {
+        const sy = (dy * srcHeight) / destHeight;
+        const pixel = src_col[sy];
+        const idx = (y + dy) * width + x;
+
+        buffer[idx] = pixel * color;
+    }
+}
+
+pub inline fn drawTexSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    if (destHeight == 0 or srcHeight == 0 or src_col.len == 0) return;
+
+    for(0..destHeight) |dy| {
+        const sy = (dy * srcHeight) / destHeight;
+        const pixel = src_col[sy];
+        const idx = (y + dy) * width + x;
+
+        buffer[idx] = shader.fragment(pixel, shader.args);
     }
 }
 
@@ -111,6 +160,7 @@ inline fn blendOver(dst: u32, src: u32) u32 {
 
     return (a << 24) | (r << 16) | (g << 8) | b;
 }
+
 pub inline fn waitForDraws() void {
     waitGroup.wait();
     waitGroup.reset();

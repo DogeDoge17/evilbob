@@ -23,6 +23,13 @@ pub var keyStates: [max_key_count]KeyStatus = [_]KeyStatus{
     } 
 } ** max_key_count;
 
+pub var mouseStates: [max_mouse_count]KeyStatus = [_]KeyStatus{ 
+    .{  .frame = 0, 
+        .state = .inactive,
+        .queue = deque.Deque(KeyStates).empty, 
+    } 
+} ** max_mouse_count;
+
 var mouse = math.Vector2{ .x = 0, .y = 0 }; 
 
 var currentFrame: u64 = 0;
@@ -31,6 +38,15 @@ var activeWindow: *minifb.Window = undefined;
 
 const max_key_count:usize = blk: {
     const fields = @typeInfo(minifb.Key).@"enum".fields;
+    var max = 0;
+    for (fields) |field| {
+        max = @max(max, field.value);
+    }
+    break :blk max + 1;
+};
+
+const max_mouse_count:usize = blk: {
+    const fields = @typeInfo(minifb.MouseButton).@"enum".fields;
     var max = 0;
     for (fields) |field| {
         max = @max(max, field.value);
@@ -57,23 +73,58 @@ pub fn update(frame: u64) void {
             };
         }
     }   
+    
+    // for (0..mouseStates.len) |i| {
+    //     const button:*KeyStatus = &mouseStates[i];
+    //
+    //     const capturedEvent = button.queue.popFront();
+    //     if(capturedEvent) |event| {
+    //         std.debug.print("{}\n", .{event});
+    //         button.*.state = event;
+    //     } else if(button.frame < currentFrame) {
+    //         button.*.state = switch(button.*.state) {
+    //             .released => .inactive,
+    //             .held => .held,
+    //             .pressed => .held,
+    //             .inactive => .inactive
+    //         };
+    //     }
+    // }  
+    
+    // const buttonStatus = activeWindow.getMouseButtonBuffer();
+
+    // for(0..8) |i| {
+    //     mouseStates[i].state = if(buttonStatus[i] == 0) switch(mouseStates[i].state) {
+    //             .inactive => .inactive,
+    //             .held => .released,
+    //             .pressed => .released,
+    //             .released => .inactive
+    //         }
+    //         else switch(mouseStates[i].state) {
+    //             .inactive => .pressed,
+    //             .held => .pressed,
+    //             .pressed => .released,
+    //             .released => .inactive
+    //     };
+    // }
+    //
+    for (0..mouseStates.len) |i| {
+        const button:*KeyStatus = &mouseStates[i];
+
+        const capturedEvent = button.queue.popFront();
+        if(capturedEvent) |event| {
+            button.*.state = event;
+        } else {
+            button.*.state = switch(button.*.state) {
+                .released => .inactive,
+                .held => .held,
+                .pressed => .held,
+                .inactive => .inactive
+            };
+        }
+    }  
 }
 
-fn printState(i:usize, text: []const u8) void {
-    // std.debug.print("{s} -- currFrame {}\tkey frame {}\tkey state {}\n", .{text, currentFrame, keyStates[i].frame, keyStates[i].state});
-    _ = i;
-    _ = text;
-}
-
-pub fn printQueue() void {
-    const sI = @as(usize, @intCast(@intFromEnum(minifb.Key.Space)));
-    var bruh = keyStates[sI].queue.iterator();
-    std.debug.print("{} ", .{keyStates[sI].state});
-    while(bruh.next()) |qI| {
-        std.debug.print("{}, ", .{qI});
-    }
-    std.debug.print("\n", .{});
-}
 /// Fires in a non deterministic way relavtive to frame updates
 /// May fire multiple times per frame or not at all
 fn onKeyEvent(window: *minifb.cWindow, key: minifb.Key, keyMod: minifb.KeyMod, isPressed: bool) callconv(.c) void {
@@ -82,15 +133,13 @@ fn onKeyEvent(window: *minifb.cWindow, key: minifb.Key, keyMod: minifb.KeyMod, i
     const index = @as(usize, @intCast(@intFromEnum(key)));
 
     if (!isPressed) {
-        // enqueue release once, then stop
         if (keyStates[index].queue.back()) |back| if (back == .released) return;
         keyStates[index].queue.pushBack(allocator, .released) catch |err| {
             std.debug.print("queue push error: {}\n", .{err});
         };
-        return; // critical: don't enqueue anything else on release
+        return; 
     }
 
-    // Press path: only enqueue if not already logically down
     if (keyStates[index].state == .pressed or keyStates[index].state == .held) return;
     if (keyStates[index].queue.back()) |back| if (back == .pressed or back == .held) return;
 
@@ -99,28 +148,94 @@ fn onKeyEvent(window: *minifb.cWindow, key: minifb.Key, keyMod: minifb.KeyMod, i
     };
 }
 
+fn onMouseEvent(window: *minifb.cWindow, button: minifb.MouseButton, keyMod: minifb.KeyMod, is_pressed: bool) callconv(.c) void {
+    _ = window;
+    _ = keyMod;
+    const index = @as(usize, @intCast(@intFromEnum(button)));
+
+    // mouseStates[index].frame = currentFrame;
+
+    if(is_pressed) {
+        mouseStates[index].queue.pushBack(allocator, .pressed) catch |err| {
+            std.debug.print("queue push error: {}\n", .{err});
+        };
+    }
+    else {
+        mouseStates[index].queue.pushBack(allocator, .released) catch |err| {
+            std.debug.print("queue push error: {}\n", .{err});
+        };
+    }
+
+
+    // if (!is_pressed) {
+    //     if (mouseStates[index].queue.back()) |back| if (back == .released) return;
+    //     mouseStates[index].queue.pushBack(allocator, .released) catch |err| {
+    //         std.debug.print("queue push error: {}\n", .{err});
+    //     };
+    //     return; 
+    // }
+    //
+    // if (mouseStates[index].state == .pressed or mouseStates[index].state == .held) return;
+    // if (mouseStates[index].queue.back()) |back| if (back == .pressed or back == .held) return;
+    //
+    // mouseStates[index].queue.pushBack(allocator, .pressed) catch |err| {
+    //     std.debug.print("queue push error: {}\n", .{err});
+    // };
+}
+
 pub fn initInput(window: *minifb.Window, alloc: std.mem.Allocator) !void {
     allocator = alloc;
     for(&keyStates) |*state|{
         state.*.queue = try .initCapacity(alloc, 16);
     }
+    for(&mouseStates) |*state|{
+        state.*.queue = try .initCapacity(alloc, 16);
+    }
     window.onKeyboard(onKeyEvent);
+    window.onMouseButton(onMouseEvent);
     activeWindow = window;
 }
 
 pub inline fn getKeyDown(keyCode: minifb.Key) bool {
     return keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .pressed;
-    // return keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].superState.pressed;
 }
 
 pub inline fn getKey(keyCode: minifb.Key) bool {
     return keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .pressed or keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .held;
-    // return keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].superState.held or keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].superState.pressed;
 }
 
 pub inline fn getKeyUp(keyCode: minifb.Key) bool {
     return keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .released;
-    // return keyStates[@as(usize, @intCast(@intFromEnum(keyCode)))].superState.released;
+}
+
+pub inline fn getMouseDown(keyCode: minifb.MouseButton) bool {
+    return mouseStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .pressed;
+}
+
+pub inline fn getMouse(keyCode: minifb.MouseButton) bool {
+    return mouseStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .pressed or mouseStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .held;
+}
+
+pub inline fn getMouseUp(keyCode: minifb.MouseButton) bool {
+    return mouseStates[@as(usize, @intCast(@intFromEnum(keyCode)))].state == .released;
+}
+
+pub inline fn getMouseXA(comptime T: anytype) T {
+    const mx = activeWindow.getMouseX();
+    return @as(T, switch(@typeInfo(@TypeOf(T))) {
+        .float => @intFromFloat(mx),
+        .int =>  @intCast(mx),
+        else => return null
+    });
+}
+
+pub inline fn getMouseYA(comptime T: anytype) T {
+    const my = activeWindow.getMouseY();
+    return @as(T, switch(@typeInfo(@TypeOf(T))) {
+        .float => @intFromFloat(my),
+        .int =>  @intCast(my),
+        else => return null
+    });
 }
 
 pub inline fn getMouseX() f32 {

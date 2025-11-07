@@ -20,6 +20,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+
     const minifb_dep = b.dependency("zig_minifb", .{.target = target, .optimize = optimize });
     const minifb = minifb_dep.module("minifb");
     exe.root_module.addImport("minifb", minifb);
