@@ -7,23 +7,45 @@ const render = @import("render.zig");
 const sprite = @import("sprite.zig");
 const title = @import("game/title.zig");
 const sceneManager = @import("scene.zig");
+const time = @import("time.zig");
+const math = @import("math.zig");
 
 const screenWidth = 800;
 const screenHeight = 600;
 
 fn windowResizeCallback(window: *minifb.cWindow, width: i32, height: i32) callconv(.c) void {
-    std.debug.print("Window resized to {}x{}\n", .{width, height});
-    _ = minifb.c.mfb_set_viewport_best_fit(window, @as(c_uint, @intCast(screenWidth)), @as(c_uint, @intCast(screenHeight)));
-}
+    const w = @as(f32, @floatFromInt(width));
+    const h = @as(f32, @floatFromInt(height));
 
+    const screenAspectRatio = @as(f32, screenWidth) / @as(f32, screenHeight);
+    const contentAspectRatio = w / h;
+    if (contentAspectRatio > screenAspectRatio) {
+        const newWidth = h * screenAspectRatio;
+        const offsetX = (w - newWidth) / 2;
+
+        _ = minifb.c.mfb_set_viewport_best_fit(window, @as(c_uint, @intCast(screenWidth)), @as(c_uint, @intCast(screenHeight)));
+        input.mx_offset = @as(i32, @intFromFloat(offsetX));
+        input.my_offset = 0;
+    } else {
+        const newHeight = w / screenAspectRatio;
+        const offsetY =  (h - newHeight) / 2;
+
+        _ = minifb.c.mfb_set_viewport_best_fit(window, @as(c_uint, @intCast(screenWidth)), @as(c_uint, @intCast(screenHeight)));
+        input.mx_offset = 0;
+        input.my_offset = @as(i32, @intFromFloat(offsetY));        
+    }
+
+    std.debug.print("Window resized to {}x{} {} {}\n", .{width, height, input.mx_offset, input.my_offset});
+}
 pub fn main() !void {
     const evilboob = try image.loadImage(std.heap.page_allocator, "assets/evilbob.tga");
+    // const testSpr = try image.loadImage(std.heap.page_allocator, "assets/test.tga");
     defer evilboob.deinit(std.heap.page_allocator);
     const skybox = try image.loadImage(std.heap.page_allocator, "assets/awesome-skybox.tga");
     defer skybox.deinit(std.heap.page_allocator);
     render.textureMap = [5]image.Image{ skybox, evilboob, skybox, evilboob, evilboob };
 
-    try sceneManager.loadScene(@import("game/title.zig"));
+    sceneManager.loadScene(@import("game/title.zig"));
 
     var theContainer = sprite.SpriteContainer{
         .sprites = std.AutoArrayHashMap(usize, *sprite.Sprite).init(std.heap.page_allocator),
@@ -31,13 +53,13 @@ pub fn main() !void {
     render.curr_sprites = &theContainer;
 
     var evilSprite = sprite.Sprite{
-        .x = 20.5,
-        .y = 11.5,
+        .pos = .{ .x = 5.5, .y = 5.5 },
         .texture = &evilboob,
     };
-    
     try theContainer.add(&evilSprite);
 
+    var font = try render.Font.load(std.heap.page_allocator, "assets/comic");
+    defer font.deinit(std.heap.page_allocator);
 
     var window = minifb.Window.openEx("Evilbopb", screenWidth, screenHeight, .resizable) catch |err| {
         std.debug.print("Failed to open window: {}\n", .{err});
@@ -61,57 +83,25 @@ pub fn main() !void {
    
     try title.init();
 
-    var time: i64 = 0;
-    var oldTime: i64 = 0;
-    var frame:u32 = 0;
     while (true) {
-        oldTime = time;
-        time = std.time.milliTimestamp();
-        const deltaTime: f32 = @as(f32, @floatFromInt(time - oldTime)) / 1000.0;
-        input.update(frame);
+        time.update(); 
+        input.update(time.frame);
 
-        const moveSpeed = deltaTime * 5;
-        const rotationSpeed = deltaTime * 3;
-
-        if(input.getKey(.S)) {
-            if(render.getMapTileSafe(cam.position.x - cam.dir.x * moveSpeed, cam.position.y) orelse 0 == 0)
-                cam.position.x -= cam.dir.x * moveSpeed;
-            if (render.getMapTileSafe(cam.position.x, cam.position.y - cam.dir.y * moveSpeed) orelse 0 == 0)
-                cam.position.y -= cam.dir.y * moveSpeed;
-        } else if(input.getKey(.W)) {
-            if(render.getMapTileSafe(cam.position.x + cam.dir.x * moveSpeed, cam.position.y) orelse 0 == 0)
-                cam.position.x += cam.dir.x * moveSpeed;
-            if (render.getMapTileSafe(cam.position.x, cam.position.y + cam.dir.y * moveSpeed) orelse 0 == 0)
-                cam.position.y += cam.dir.y * moveSpeed;
-        }
-        if (input.getKey(.D)) {
-            const oldDirX = cam.dir.x;
-            cam.dir.x = cam.dir.x * @cos(-rotationSpeed) - cam.dir.y * @sin(-rotationSpeed);
-            cam.dir.y = oldDirX * @sin(-rotationSpeed) + cam.dir.y * @cos(-rotationSpeed);
-            const oldPlaneX = cam.plane.x;
-            cam.plane.x = cam.plane.x * @cos(-rotationSpeed) - cam.plane.y * @sin(-rotationSpeed);
-            cam.plane.y = oldPlaneX * @sin(-rotationSpeed) + cam.plane.y * @cos(-rotationSpeed);
-        } else if(input.getKey(.A)) {
-            const oldDirX = cam.dir.x;
-            cam.dir.x = cam.dir.x * @cos(rotationSpeed) - cam.dir.y * @sin(rotationSpeed);
-            cam.dir.y = oldDirX * @sin(rotationSpeed) + cam.dir.y * @cos(rotationSpeed);
-
-            const oldPlaneX = cam.plane.x;
-            cam.plane.x = cam.plane.x * @cos(rotationSpeed) - cam.plane.y * @sin(rotationSpeed);
-            cam.plane.y = oldPlaneX * @sin(rotationSpeed) + cam.plane.y * @cos(rotationSpeed);
-        }
-
-        // draw.waitForDraws();
-        // @memset(buffer, minifb.argb(255, 0, 0, 0));
+        sceneManager.update();
 
         draw.waitForDraws();
-        render.render();
+        @memset(buffer, minifb.argb(255, 0, 0, 0));
 
         draw.waitForDraws();
-        title.render();
+        sceneManager.render();
 
+        draw.waitForDraws();
+        try font.renderStringF(minifb.argb(255, 255, 255, 255), 0, screenHeight-20, 12, "FPS: {d:.2}", .{time.fps});
+        try font.renderStringF(minifb.argb(255, 255, 255, 255), 0, 0, 12, "({}, {})", .{input.getMouseXA(i32), input.getMouseYA(i32)});
+
+
+        draw.waitForDraws(); // always wait before submitting
         if (window.updateEx(buffer, screenWidth, screenHeight) < 0) { break; }
-        frame = frame +% 1;
         if ( !window.waitSync()) break;
     }
 }

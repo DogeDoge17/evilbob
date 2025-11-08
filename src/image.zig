@@ -134,7 +134,7 @@ pub fn loadImage(alloc: std.mem.Allocator, path: []const u8) !Image {
     const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
 
-    const imagedata = try file.readToEndAlloc(alloc, 10 * 1024 * 1024); // 10mb max
+    const imagedata = try file.readToEndAlloc(alloc, 10 * 4024 * 4024); 
     defer alloc.free(imagedata);
 
     if (imagedata[2] != 2) return error.invalidformat;

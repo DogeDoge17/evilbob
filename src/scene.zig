@@ -7,16 +7,16 @@ pub const VTable = struct {
 
 pub var loadedScene: ?VTable = null;
 
-pub fn loadScene(comptime T: anytype) !void {
+pub fn loadScene(comptime T: anytype) void {
     if(loadedScene) |loaded| {
         loaded.deinit();
     }
 
     loadedScene = .{
-        .deinit = @as(*const fn() void,@ptrCast(&@field(T, "deinit"))),
-        .render = @as(*const fn() void,@ptrCast(&@field(T, "render"))),
-        .init = @as(*const fn() void,@ptrCast(&@field(T, "init"))),
-        .update = @as(*const fn() void,@ptrCast(&@field(T, "update"))),
+        .deinit = @as(*const fn() void, @ptrCast(&@field(T, "deinit"))),
+        .render = @as(*const fn() void, @ptrCast(&@field(T, "render"))),
+        .init = @as(*const fn() void, @ptrCast(&@field(T, "init"))),
+        .update = @as(*const fn() void, @ptrCast(&@field(T, "update"))),
     };
     loadedScene.?.init();
 }

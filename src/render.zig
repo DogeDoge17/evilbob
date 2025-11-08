@@ -6,9 +6,9 @@ const std = @import("std");
 const sprite = @import("sprite.zig");
 
 pub const Camera = struct {
-    position: math.FVector2,
-    dir: math.FVector2,
-    plane: math.FVector2,
+    position: math.Vector2(f32),
+    dir: math.Vector2(f32),
+    plane: math.Vector2(f32),
 };
 pub var cam: *Camera = undefined;
 
@@ -136,23 +136,16 @@ pub fn setWalls() void {
 pub fn renderSprites() void {
     const w:f32 = @as(f32, @floatFromInt(draw.width));
     const h:f32 = @as(f32, @floatFromInt(draw.height));
-    
-    // Transform sprites to camera space and calculate distance
-    // var spriteOrder = std.ArrayList(usize).init(allocator);
-    // var spriteDistance = std.ArrayList(f32).init(allocator);
-    // defer spriteOrder.deinit();
-    // defer spriteDistance.deinit();
-    
     const sprites = curr_sprites.getSprites();
 
+    // _ = minifb.c.mfb_set_viewport_best_fit(window, @as(c_uint, @intCast(screenWidth)), @as(c_uint, @intCast(screenHeight)));
     for (sprites, 0..) |spr, i| {
         sprites[i].order = i;
-        const dx = spr.x - cam.position.x;
-        const dy = spr.y - cam.position.y;
+        const dx = spr.pos.x - cam.position.x;
+        const dy = spr.pos.y - cam.position.y;
         sprites[i].dist = dx * dx + dy * dy;
     }
     
-
     for(0..sprites.len) |i| {
         for(i+1..sprites.len) |j| {
             if (sprites[sprites[i].order].dist < sprites[sprites[j].order].dist) {
@@ -162,14 +155,13 @@ pub fn renderSprites() void {
             }
         }
     }
-
     
     for (0..sprites.len) |i| {
         const ord = sprites[i].order;
         const spr = sprites[ord];
         
-        const spriteX = spr.x - cam.position.x;
-        const spriteY = spr.y - cam.position.y;
+        const spriteX = spr.pos.x - cam.position.x;
+        const spriteY = spr.pos.y - cam.position.y;
         
         const invDet = 1.0 / (cam.plane.x * cam.dir.y - cam.dir.x * cam.plane.y);
         const transformX = invDet * (cam.dir.y * spriteX - cam.dir.x * spriteY);
@@ -195,6 +187,7 @@ pub fn renderSprites() void {
         
         var stripe:i32 = drawStartX;
         while (stripe < drawEndX) : (stripe += 1) {
+            std.debug.print("tex width {} {} {}\n", .{spr.texture.width, spr.texture.height, spr.texture.pixels.len});
             const texX:usize = @as(usize, @intCast(@divFloor((stripe - (-spriteWidthH + spriteScreenX)) * @as(i32, @intCast(spr.texture.width)), spriteWidth)));
             
             if (transformY < zBuffer[@as(usize, @intCast(stripe))]) {
@@ -204,6 +197,7 @@ pub fn renderSprites() void {
                 
                 draw.queueTexBVLine(
                     row,
+                    0xFFFFFFFF,
                     @as(usize, @intCast(stripe)),
                     @as(usize, @intCast(drawStartY)),
                     @as(usize, @intCast(drawEndY - drawStartY)),
@@ -355,46 +349,141 @@ fn adjustBrightnessProgram(color: u32, args: draw.program_args) u32 {
         | (@as(u32, @intFromFloat(g * 255.0)) << 8)
         | (@as(u32, @intFromFloat(b * 255.0)));
 }
-inline fn adjustBrightness(color: u32, brightness: f64) u32 {
-    @setFloatMode(.optimized);
-    const gamma = 2.2;
 
-    var r = @as(f64, @floatFromInt((color >> 16) & 0xff)) / 255.0;
-    var g = @as(f64, @floatFromInt((color >> 8) & 0xff)) / 255.0;
-    var b = @as(f64, @floatFromInt(color & 0xff)) / 255.0;
 
-    r = std.math.pow(f64, r, gamma);
-    g = std.math.pow(f64, g, gamma);
-    b = std.math.pow(f64, b, gamma);
+const internal_string = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"; 
+const default_font_size = 126;
+pub const Font = struct {
+    font_map: std.AutoHashMap(u8, LineChar),
+    atlas: img.Image,
+    line_seperation: f32 = default_font_size * 0.3,
+    padding: i32 = 10,
+    fmtBuff: std.heap.FixedBufferAllocator = undefined,
 
-    r *= brightness;
-    g *= brightness;
-    b *= brightness;
+    pub fn load(allocator: std.mem.Allocator, path: []const u8) !Font {
+        const fnt_path = try std.fmt.allocPrint(allocator, "{s}.fntdat", .{path});
+        defer allocator.free(fnt_path);
+        const texture_path = try std.fmt.allocPrint(allocator, "{s}.tga", .{path});
+        defer allocator.free(texture_path);
+        std.debug.print("Loading font from: {s} and {s}\n", .{fnt_path, texture_path});
+        const atlas = try img.loadImage(allocator, texture_path);
 
-    r = @min(1.0, r);
-    g = @min(1.0, g);
-    b = @min(1.0, b);
+        var font_file = try std.fs.cwd().openFile(fnt_path, .{});
+        defer font_file.close();
+        const font_data = try font_file.readToEndAlloc(allocator, 10 * 1024 * 1024);
+        defer allocator.free(font_data);
 
-    r = std.math.pow(f64, r, 1.0 / gamma);
-    g = std.math.pow(f64, g, 1.0 / gamma);
-    b = std.math.pow(f64, b, 1.0 / gamma);
+        var font_map = std.AutoHashMap(u8, LineChar).init(allocator);
 
-    return (0xff << 24)
-        | (@as(u32, @intFromFloat(r * 255.0)) << 16)
-        | (@as(u32, @intFromFloat(g * 255.0)) << 8)
-        | (@as(u32, @intFromFloat(b * 255.0)));
-}
+        var i: usize = 0;
+        var wrap:i8 = 0;
+        var wrappped_wraps: usize = 0;
+        var line_char = LineChar {
+            .xS = 0,
+            .yS = 0,
+            .width = 0,
+            .height = 0,
+            .x = 0,
+        };
 
-inline fn sortSpritesByDistance(order: []usize, dist: []f32) void {
-    var i: usize = 0;
-    while (i < order.len - 1) : (i += 1) {
-        var j: usize = i + 1;
-        while (j < order.len) : (j += 1) {
-            if (dist[order[i]] < dist[order[j]]) {
-                const tmp = order[i];
-                order[i] = order[j];
-                order[j] = tmp;
+        while (i + 4 <= font_data.len) : (i += 4) {
+            const b0 = font_data[i + 0];
+            const b1 = font_data[i + 1];
+            const b2 = font_data[i + 2];
+            const b3 = font_data[i + 3];
+            const number = @as(u32, b0) | (@as(u32, b1) << 8) | (@as(u32, b2) << 16) | (@as(u32, b3) << 24);
+
+            switch(wrap) {
+                0 => line_char.xS = @as(f32, @floatFromInt(number)),
+                1 => line_char.yS = @as(f32, @floatFromInt(number)),
+                2 => line_char.width = @as(f32, @floatFromInt(number)),
+                3 => line_char.height = @as(f32, @floatFromInt(number)),
+                4 => {
+                    line_char.x = @as(f32, @floatFromInt(number));
+                    
+                    if(internal_string.len <= wrappped_wraps) break;
+
+                    const char: u8 = internal_string[wrappped_wraps];
+                    try font_map.put(char, line_char);
+                    wrap = -1;
+                    wrappped_wraps += 1;
+                },
+                else => { wrap = 0; },
             }
+
+            wrap += 1;
+        }
+
+        return Font {
+            .font_map = font_map,
+            .atlas = atlas,
+            .fmtBuff = std.heap.FixedBufferAllocator.init(try std.heap.c_allocator.alloc(u8, 256)),
+        };
+    }
+    
+    pub fn renderStringF(self: *@This(), color: u32, x: usize, y: usize, font_size: f32, comptime fmt: []const u8,  args: anytype ) !void {
+        const text = std.fmt.allocPrint(self.fmtBuff.threadSafeAllocator(), fmt, args) catch {
+            const needed_size = std.fmt.count(fmt, args) + 10;
+            self.fmtBuff.buffer = try std.heap.c_allocator.realloc(self.fmtBuff.buffer, needed_size); 
+
+            const text = try std.fmt.allocPrint(self.fmtBuff.threadSafeAllocator(), fmt, args);
+            defer self.fmtBuff.reset();
+
+            renderString(self, color, x, y, font_size, text);
+            return;
+        };
+        defer self.fmtBuff.reset();
+        renderString(self, color, x, y, font_size, text);
+    }
+
+    pub fn renderString(self: *@This(), color: u32, x: usize, y: usize, font_size: f32, text: []const u8) void {
+        var char_offset: f32 = @as(f32, @floatFromInt(x));
+        var line_offset: f32 = 0;
+        var prev_char: LineChar = .{ .xS = 0, .yS = 0, .width = 0, .height = 0, .x = 0 };
+        const font_percent: f32 = font_size / default_font_size;
+        var max_char_offset: f32 = 0;
+        
+        for(text) |c| {
+            if (c == '\r' or c == '\n') {
+                max_char_offset = @max(max_char_offset, char_offset);
+                char_offset = @as(f32, @floatFromInt(x));
+                prev_char = .{ .xS = 0, .yS = 0, .width = 0, .height = 0, .x = 0 };
+                line_offset += self.line_seperation;
+                continue; 
+            }
+            const rec = self.font_map.get(c) orelse continue;
+
+            char_offset += (prev_char.width - prev_char.x) * font_percent;
+            const dest_rect = math.Rectangle(usize) {
+                .x = @as(usize, @intFromFloat(char_offset)),
+                .y = y + @as(usize, @intFromFloat(line_offset)),
+                .width = @as(usize, @intFromFloat(rec.width * font_percent)),
+                .height = @as(usize, @intFromFloat(rec.height * font_percent)),
+            };
+
+            const src_rect = math.Rectangle(usize) {
+                .x = @as(usize, @intFromFloat(rec.xS)),
+                .y = @as(usize, @intFromFloat(rec.yS)),
+                .width = @as(usize, @intFromFloat(rec.width)),
+                .height = @as(usize, @intFromFloat(rec.height)),
+            };
+
+            draw.queueBlitR(&self.atlas, color, dest_rect, src_rect);
+            prev_char = rec;
         }
     }
-}
+
+    pub fn deinit(self: *Font, allocator: std.mem.Allocator) void {
+        self.atlas.deinit(allocator);
+        self.font_map.deinit();
+        std.heap.c_allocator.free(self.fmtBuff.buffer);
+    }
+};
+
+pub const LineChar = struct{
+    xS: f32,
+    yS: f32,
+    width: f32,
+    height: f32,
+    x: f32,
+};
