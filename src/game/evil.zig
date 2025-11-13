@@ -10,7 +10,7 @@ pub const Evil = struct {
     sprite: spr.Sprite = .{ .pos = .{.x = 22, .y = 0 }, .texture = undefined },
     container: *spr.SpriteContainer = undefined,
     
-    pub fn init(containter: *spr.SpriteContainer, position: math.Vector2(f32), speed: f32, texture:*img.Image) @This() {
+    pub fn init(containter: *spr.SpriteContainer, position: math.Vector2(f32), speed: f32, texture:img.Assets) @This() {
         return .{
             .sprite = .{ .pos = position, .texture = texture },
             .speed = speed,

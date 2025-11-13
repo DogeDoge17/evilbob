@@ -222,21 +222,23 @@ pub inline fn getMouseUp(keyCode: minifb.MouseButton) bool {
 
 pub var mx_offset: i32 = 0;
 pub var my_offset: i32 = 0;
+pub var mx_multiplier: f32 = 0;
+pub var my_multiplier: f32 = 0;
 pub inline fn getMouseXA(comptime T: anytype) T {
-    const mx = @max(activeWindow.getMouseX() - mx_offset, 0);
+    const mx = @as(f32, @floatFromInt(@max(activeWindow.getMouseX() - mx_offset, 0))) * mx_multiplier;
     return @as(T, switch(@typeInfo(@TypeOf(T))) {
-        .float => @intFromFloat(mx),
-        .int =>  @intCast(mx),
-        else => @intCast(mx)
+        .float => @floatCast(mx),
+        .int =>  @intFromFloat(mx),
+        else => @intFromFloat(mx)
     });
 }
 
 pub inline fn getMouseYA(comptime T: anytype) T {
-    const my = @max(activeWindow.getMouseY() - my_offset, 0);
+    const my = @as(f32, @floatFromInt(@max(activeWindow.getMouseY() - my_offset, 0))) * my_multiplier;
     return @as(T, switch(@typeInfo(@TypeOf(T))) {
-        .float => @intFromFloat(my),
-        .int =>  @intCast(my),
-        else => @intCast(my)
+        .float => @floatCast(my),
+        .int =>  @intFromFloat(my),
+        else => @intFromFloat(my)
     });
 }
 

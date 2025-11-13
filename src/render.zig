@@ -4,6 +4,15 @@ const math = @import("math.zig");
 const img = @import("image.zig");
 const std = @import("std");
 const sprite = @import("sprite.zig");
+pub const argb = minifb.argb;
+
+pub fn extract_colors(color: u32) [4]u8 {
+    const a = @as(u8, @intCast((color >> 24) & 0xFF));
+    const r = @as(u8, @intCast((color >> 16) & 0xFF));
+    const g = @as(u8, @intCast((color >> 8) & 0xFF));
+    const b = @as(u8, @intCast(color & 0xFF));
+    return .{a, r, g, b};
+}
 
 pub const Camera = struct {
     position: math.Vector2(f32),
@@ -15,77 +24,73 @@ pub var cam: *Camera = undefined;
 pub const mapWidth = @as(f64, worldMap[0].len); const umapWidth = mapWidth.len;
 pub const mapHeight = @as(f64, worldMap.len); const umapHeight = worldMap.len;
 
-pub const worldMap = [_][24]u32{
-  .{1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
-  .{1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,0,0,0,1},
-  .{1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  .{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+pub const TileType = enum(u32) {
+    AR = 0, // Air
+    WL, // Wall
+    DR, // Door
+    WN, // Window
+    FW, // Food Window 
+    FN, // Fence
+    WD, // Wooden Wall
+    KK, // Krab Kitchen Mixed Wall
+    KD, // Door between Kitchen and office
+    D1, // left main Door
+    D2, // left main Door
 };
+
+pub const TileInfo = struct {
+    t_type: TileType,
+    texture: ?img.Assets,
+    solid: bool = true,
+    directional: bool = false,
+    n_texture: ?img.Assets = null,
+    s_texture: ?img.Assets = null,
+    e_texture: ?img.Assets = null,
+    w_texture: ?img.Assets = null,
+};
+
+pub var tiles: [@typeInfo(TileType).@"enum".fields.len]TileInfo = undefined;
+
+// reversed for some reason
+pub const worldMap = [_][26]TileType{
+   // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+  .{ .AR,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.AR },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.WL,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KD,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.DR,.WL,.FW,.WL,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.WL,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.WD,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.D1,.D2,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.WD,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
+  .{ .AR,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.AR,.AR,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+};
+
 var zBuffer: [800]f32 = undefined;
-pub var textureMap: [5]img.Image = undefined;
-
 pub var curr_sprites: *sprite.SpriteContainer = undefined;
-
-// pub var sprites: [1] *const sprite.Sprite = undefined;
-// pub var sprite_order: [1] usize = undefined;
-// pub var sprite_dist: [1] f32 = undefined;
-//
-// pub const worldMap = [_][10]u32{
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-//   .{0,0,1,1,1,1,1,1,0,0,},  
-//   .{0,0,1,0,0,0,0,1,0,0,},  
-//   .{0,0,1,0,0,0,0,1,0,0,},  
-//   .{0,0,1,0,0,0,0,1,0,0,},  
-//   .{0,0,1,1,0,1,1,1,0,0,},  
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-//   .{0,0,0,0,0,0,0,0,0,0,},  
-// };
-
-// pub const worldMap = [_]u32{
-//     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,
-//     1,0,0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,
-//     1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,
-//     1,0,0,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,0,1,
-//     1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,
-//     1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,1,
-//     1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-//     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-// };
 
 test "what" {
     const hi: f32 = 10;
@@ -114,7 +119,13 @@ pub inline fn getMapTileSafe(x: anytype, y: anytype) ?u32 {
         else => return null
     });
 
-    return worldMap[uy][ux];
+    return @intFromEnum(worldMap[uy][ux]);
+}
+
+pub inline fn getMapTileInfo(x: anytype, y: anytype) ?TileInfo {
+    const tileIndex = getMapTileSafe(x, y) orelse return null;
+    const tileNum = @as(usize, @intCast(tileIndex));
+    return tiles[tileNum];
 }
 
 pub inline fn getMapTile(x: usize, y: usize) u32 {
@@ -185,15 +196,16 @@ pub fn renderSprites() void {
         var drawEndX:i32 = spriteWidthH + spriteScreenX;
         if (drawEndX >= @as(i32, @intFromFloat(w))) drawEndX = @as(i32, @intFromFloat(w)) - 1;
         
+        const sprite_texture = img.getImage(spr.texture) orelse continue;
+
         var stripe:i32 = drawStartX;
         while (stripe < drawEndX) : (stripe += 1) {
-            std.debug.print("tex width {} {} {}\n", .{spr.texture.width, spr.texture.height, spr.texture.pixels.len});
-            const texX:usize = @as(usize, @intCast(@divFloor((stripe - (-spriteWidthH + spriteScreenX)) * @as(i32, @intCast(spr.texture.width)), spriteWidth)));
+            const texX:usize = @as(usize, @intCast(@divFloor((stripe - (-spriteWidthH + spriteScreenX)) * @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
             
             if (transformY < zBuffer[@as(usize, @intCast(stripe))]) {
-                const clampedTexX = @min(texX, spr.texture.height - 1);
-                const row_index = spr.texture.height - 1 - clampedTexX;
-                const row = spr.texture.pixels[row_index * spr.texture.width .. (row_index + 1) * spr.texture.width];
+                const clampedTexX = @min(texX, sprite_texture.height - 1);
+                const row_index = sprite_texture.height - 1 - clampedTexX;
+                const row = sprite_texture.pixels[row_index * sprite_texture.width .. (row_index + 1) * sprite_texture.width];
                 
                 draw.queueTexBVLine(
                     row,
@@ -201,7 +213,7 @@ pub fn renderSprites() void {
                     @as(usize, @intCast(stripe)),
                     @as(usize, @intCast(drawStartY)),
                     @as(usize, @intCast(drawEndY - drawStartY)),
-                    spr.texture.width
+                    sprite_texture.width
                 );
             }
         }
@@ -229,7 +241,6 @@ pub fn renderWalls() void {
         var stepX: i32 = 0;
         var stepY: i32 = 0;
 
-        var hit:i32 = 0;
         var side:i32 = 0;
         if(rayDirX < 0) {
             stepX = -1;
@@ -248,7 +259,7 @@ pub fn renderWalls() void {
             sideDistY = (@as(f32, @floatFromInt(mapY)) + 1.0 - cam.position.y) * deltaDistY;
         }
 
-        while(hit == 0) {
+        while(true) {
             if(sideDistX < sideDistY) {
                 sideDistX += deltaDistX;
                 mapX += stepX;
@@ -260,14 +271,36 @@ pub fn renderWalls() void {
                 side = 1;
             }
 
-            if (getMapTileSafe(mapX, mapY) orelse continue :xLoop > 0) hit = 1;
+            if (getMapTileSafe(mapX, mapY) orelse continue :xLoop > 0) break;
         }
         perpWallDist = if (side == 0) (sideDistX - deltaDistX) else (sideDistY - deltaDistY);
         zBuffer[x] = perpWallDist;
 
         const lineHeight:f32 = h / perpWallDist;
+        
+        const texture: img.Assets = blk: {
+            const tileInfo = getMapTileInfo(mapX, mapY) orelse break :blk null;
+            if (!tileInfo.directional) break :blk tileInfo.texture orelse null;
+
+            if (side == 0) {
+                if (stepX == -1) {
+                    break :blk tileInfo.e_texture orelse null;
+                } else {
+                    break :blk tileInfo.w_texture orelse null;
+                }
+            } else {
+                if (stepY == -1) {
+                    break :blk tileInfo.n_texture orelse null;
+                } else {
+                    break :blk tileInfo.s_texture orelse null;
+                }
+            }
+        } orelse continue :xLoop;
     
-        const texNum: usize = @as(usize, @intCast((getMapTileSafe(mapX, mapY) orelse continue :xLoop) - 1));
+
+        // const texture = (getMapTileInfo(mapX, mapY) orelse continue :xLoop).texture orelse continue :xLoop;
+        
+        const wall_texture = img.getImage(texture) orelse continue :xLoop;
 
         @setFloatMode(.optimized);
         const drawStartUnclamped:f32 = -lineHeight / 2 + h / 2;
@@ -281,8 +314,8 @@ pub fn renderWalls() void {
         const texStartOffset:f32 = if (drawStartUnclamped < 0) -drawStartUnclamped / lineHeight else  0;
         const texEndOffset:f32 = if (drawEndUnclamped >= h) (drawEndUnclamped - h + 1) / lineHeight else 0;
 
-        const texStartY:usize = @as(usize, @intFromFloat(texStartOffset * @as(f32, @floatFromInt(textureMap[texNum].width))));
-        const texHeight:usize = @as(usize, @intFromFloat((1.0 - texStartOffset - texEndOffset) * @as(f32, @floatFromInt(textureMap[texNum].width))));   
+        const texStartY:usize = @as(usize, @intFromFloat(texStartOffset * @as(f32, @floatFromInt(wall_texture.width))));
+        const texHeight:usize = @as(usize, @intFromFloat((1.0 - texStartOffset - texEndOffset) * @as(f32, @floatFromInt(wall_texture.width))));   
 
         var wallX:f32 = 0;
         if (side == 0) {
@@ -291,8 +324,8 @@ pub fn renderWalls() void {
             wallX = cam.position.x + perpWallDist * rayDirX;
         }
         wallX -= @floor(wallX);
-        var texX: usize = @as(usize, @intFromFloat(wallX * @as(f32, @floatFromInt(textureMap[texNum].height))));
-        if (texX >= textureMap[texNum].height) texX = textureMap[texNum].height - 1;
+        var texX: usize = @as(usize, @intFromFloat(wallX * @as(f32, @floatFromInt(wall_texture.height))));
+        if (texX >= wall_texture.height) texX = wall_texture.height - 1;
 
         const program = draw.program {
             .fragment = adjustBrightnessProgram,
@@ -301,11 +334,14 @@ pub fn renderWalls() void {
             },
         };
 
-        const clampedTexX = @min(texX, textureMap[texNum].height - 1);
-        const row_index = textureMap[texNum].height - 1 - clampedTexX;
-        const row = textureMap[texNum].pixels[row_index * textureMap[texNum].width .. (row_index + 1) * textureMap[texNum].width];
+        const clampedTexX = @min(texX, wall_texture.height - 1);
+        const row_index = wall_texture.height - 1 - clampedTexX;
+        const row = wall_texture.pixels[row_index * wall_texture.width .. (row_index + 1) * wall_texture.width];
+        const end_index = texStartY +% texHeight;
+        if(texStartY > end_index) continue :xLoop;
+
         draw.queueTexSVLine(
-            row[texStartY .. texStartY + texHeight],
+            row[texStartY .. end_index],
             program, 
             x,
             @as(usize, @intFromFloat(drawStart)),
@@ -350,28 +386,29 @@ fn adjustBrightnessProgram(color: u32, args: draw.program_args) u32 {
         | (@as(u32, @intFromFloat(b * 255.0)));
 }
 
-
 const internal_string = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"; 
 const default_font_size = 126;
+pub var the_font: Font = undefined;
 pub const Font = struct {
     font_map: std.AutoHashMap(u8, LineChar),
-    atlas: img.Image,
+    atlas: img.Assets,
     line_seperation: f32 = default_font_size * 0.3,
     padding: i32 = 10,
     fmtBuff: std.heap.FixedBufferAllocator = undefined,
 
-    pub fn load(allocator: std.mem.Allocator, path: []const u8) !Font {
-        const fnt_path = try std.fmt.allocPrint(allocator, "{s}.fntdat", .{path});
-        defer allocator.free(fnt_path);
-        const texture_path = try std.fmt.allocPrint(allocator, "{s}.tga", .{path});
-        defer allocator.free(texture_path);
-        std.debug.print("Loading font from: {s} and {s}\n", .{fnt_path, texture_path});
-        const atlas = try img.loadImage(allocator, texture_path);
-
-        var font_file = try std.fs.cwd().openFile(fnt_path, .{});
-        defer font_file.close();
-        const font_data = try font_file.readToEndAlloc(allocator, 10 * 1024 * 1024);
-        defer allocator.free(font_data);
+    pub fn load(allocator: std.mem.Allocator) !Font {
+        // const fnt_path = try std.fmt.allocPrint(allocator, "{s}.fntdat", .{path});
+        // defer allocator.free(fnt_path);
+        // const texture_path = try std.fmt.allocPrint(allocator, "{s}.tga", .{path});
+        // defer allocator.free(texture_path);
+        // std.debug.print("Loading font from: {s} and {s}\n", .{fnt_path, texture_path});
+        const atlas = .comic;
+        const font_data = @embedFile("comic.fntdat");
+        //
+        // var font_file = try std.fs.cwd().openFile(fnt_path, .{});
+        // defer font_file.close();
+        // const font_data = try font_file.readToEndAlloc(allocator, 10 * 1024 * 1024);
+        // defer allocator.free(font_data);
 
         var font_map = std.AutoHashMap(u8, LineChar).init(allocator);
 
@@ -468,13 +505,12 @@ pub const Font = struct {
                 .height = @as(usize, @intFromFloat(rec.height)),
             };
 
-            draw.queueBlitR(&self.atlas, color, dest_rect, src_rect);
+            draw.queueBlitR(img.getImage(self.atlas).?, color, dest_rect, src_rect);
             prev_char = rec;
         }
     }
 
-    pub fn deinit(self: *Font, allocator: std.mem.Allocator) void {
-        self.atlas.deinit(allocator);
+    pub fn deinit(self: *Font) void {
         self.font_map.deinit();
         std.heap.c_allocator.free(self.fmtBuff.buffer);
     }

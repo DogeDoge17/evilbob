@@ -4,8 +4,8 @@ const input = @import("../input.zig");
 const math = @import("../math.zig");
 
 pub const Element = struct {
-    texture: img.Image,
-    hoverTexture: *img.Image = undefined,
+    texture: img.Assets,
+    hoverTexture: img.Assets = undefined,
     pos: math.Vector2(usize),
     width: usize,
     height: usize,
@@ -19,7 +19,7 @@ pub const Element = struct {
     }
 
     pub fn render(self: * const @This()) void {
-        draw.blit(&self.texture, 0xFFFFFFFF, self.pos.x, self.pos.y, self.width, self.height);
+        draw.blit(img.getImage(self.texture).?, 0xFFFFFFFF, self.pos.x, self.pos.y, self.width, self.height);
     }
 
     fn aabb(self: *const @This(), x: usize, y: usize) bool {

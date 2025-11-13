@@ -9,6 +9,7 @@ const title = @import("game/title.zig");
 const sceneManager = @import("scene.zig");
 const time = @import("time.zig");
 const math = @import("math.zig");
+const audio = @import("audio.zig");
 
 const screenWidth = 800;
 const screenHeight = 600;
@@ -35,37 +36,40 @@ fn windowResizeCallback(window: *minifb.cWindow, width: i32, height: i32) callco
         input.my_offset = @as(i32, @intFromFloat(offsetY));        
     }
 
+    input.mx_multiplier = @as(f32, screenWidth) / (w - @as(f32, @floatFromInt(input.mx_offset)) * 2);
+    input.my_multiplier = @as(f32, screenHeight) / (h - @as(f32, @floatFromInt(input.my_offset)) * 2);
+
     std.debug.print("Window resized to {}x{} {} {}\n", .{width, height, input.mx_offset, input.my_offset});
 }
 pub fn main() !void {
-    const evilboob = try image.loadImage(std.heap.page_allocator, "assets/evilbob.tga");
-    // const testSpr = try image.loadImage(std.heap.page_allocator, "assets/test.tga");
-    defer evilboob.deinit(std.heap.page_allocator);
-    const skybox = try image.loadImage(std.heap.page_allocator, "assets/awesome-skybox.tga");
-    defer skybox.deinit(std.heap.page_allocator);
-    render.textureMap = [5]image.Image{ skybox, evilboob, skybox, evilboob, evilboob };
-
-    sceneManager.loadScene(@import("game/title.zig"));
-
-    var theContainer = sprite.SpriteContainer{
-        .sprites = std.AutoArrayHashMap(usize, *sprite.Sprite).init(std.heap.page_allocator),
-    };
-    render.curr_sprites = &theContainer;
-
-    var evilSprite = sprite.Sprite{
-        .pos = .{ .x = 5.5, .y = 5.5 },
-        .texture = &evilboob,
-    };
-    try theContainer.add(&evilSprite);
-
-    var font = try render.Font.load(std.heap.page_allocator, "assets/comic");
-    defer font.deinit(std.heap.page_allocator);
-
     var window = minifb.Window.openEx("Evilbopb", screenWidth, screenHeight, .resizable) catch |err| {
         std.debug.print("Failed to open window: {}\n", .{err});
         return err;
     };
-     
+    window.onResize(windowResizeCallback);
+
+    try input.initInput(&window, std.heap.page_allocator);
+    try draw.initThreading();
+    try image.init();
+    audio.init();
+
+    const buffer: []u32 = try std.heap.page_allocator.alloc(u32, screenWidth * screenHeight);
+    defer std.heap.page_allocator.free(buffer);
+    draw.setBuffer(buffer, screenWidth, screenHeight);
+
+    render.tiles = .{
+        .{ .t_type = .AR, .texture = null, .solid = false },
+        .{ .t_type = .WL, .texture = .wall1, },
+        .{ .t_type = .DR, .texture = .door, .solid = false },
+        .{ .t_type = .WN, .texture = .window, },
+        .{ .t_type = .FW, .texture = .food_window, },
+        .{ .t_type = .FN, .texture = .fence, },
+        .{ .t_type = .WD, .texture = .wood, },
+        .{ .t_type = .KK, .texture = .wood, .directional = true, .e_texture = .wood, .w_texture =  .wall1},
+        .{ .t_type = .KD, .texture = .door,.solid = false, .directional = true, .e_texture = .wood_door, .w_texture =  .door},
+        .{ .t_type = .D1, .texture = .main_door_l, .solid = false  },
+        .{ .t_type = .D2, .texture = .main_door_r, .solid = false  },
+    };
     var cam: render.Camera = .{ 
         .dir = .{ .x = -1, .y = 0 }, 
         .plane = .{ .x = 0, .y = 0.95 }, 
@@ -73,16 +77,14 @@ pub fn main() !void {
     }; 
     render.cam = &cam;
 
-    window.onResize(windowResizeCallback);
-    try input.initInput(&window, std.heap.page_allocator);
+    render.the_font = try render.Font.load(std.heap.page_allocator);
 
-    const buffer: []u32 = try std.heap.page_allocator.alloc(u32, screenWidth * screenHeight);
-    defer std.heap.page_allocator.free(buffer);
-    try draw.initThreading();
-    draw.setBuffer(buffer, screenWidth, screenHeight);
-   
-    try title.init();
+    var theContainer = sprite.SpriteContainer{
+        .sprites = std.AutoArrayHashMap(usize, *sprite.Sprite).init(std.heap.page_allocator),
+    };
+    render.curr_sprites = &theContainer;
 
+    sceneManager.loadScene(@import("game/title.zig"));
     while (true) {
         time.update(); 
         input.update(time.frame);
@@ -96,9 +98,11 @@ pub fn main() !void {
         sceneManager.render();
 
         draw.waitForDraws();
-        try font.renderStringF(minifb.argb(255, 255, 255, 255), 0, screenHeight-20, 12, "FPS: {d:.2}", .{time.fps});
-        try font.renderStringF(minifb.argb(255, 255, 255, 255), 0, 0, 12, "({}, {})", .{input.getMouseXA(i32), input.getMouseYA(i32)});
+        sceneManager.postRender();
 
+
+        draw.waitForDraws();
+        try render.the_font.renderStringF(minifb.argb(255, 255, 0, 0), 0, screenHeight-20, 12, "FPS: {d:.2}", .{time.fps});
 
         draw.waitForDraws(); // always wait before submitting
         if (window.updateEx(buffer, screenWidth, screenHeight) < 0) { break; }
