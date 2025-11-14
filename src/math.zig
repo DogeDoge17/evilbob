@@ -1,5 +1,48 @@
 // sir just use @Vector 
 // NOOOOOOOOOOOOOOOOOOO
+//
+
+test "frac" {
+    const std = @import("std");
+
+    const num, const dem = decimal2Frac(1.0/3.0);
+    std.debug.print("{}/{}\n", .{num, dem});
+    try std.testing.expect(num == 1 and dem == 3);
+
+}
+
+pub fn decimal2Frac(decimal:f32) struct{ f32, f32 } {
+    const original_abs_value = @abs(decimal);
+    const decimal_sign: f32 = if(decimal < 0) -1 else 1;
+
+    if(original_abs_value == @trunc(original_abs_value)) { return .{original_abs_value * decimal_sign, 1}; }
+    if(original_abs_value < 1.0E-19) { return .{0, 1}; }
+    if(original_abs_value > 1.0E19) { return .{ 9999999 * decimal_sign, 1}; }
+
+    var z = original_abs_value;
+    var previous_denominator: f32 = 0;
+    var out_numerator: f32 = @trunc(z);
+    var out_denominator: f32 = 1;
+    var scratch_value:f32 = undefined;
+
+    const max_iter = 100;
+    for(0..max_iter) |_| {
+        z = (z - @trunc(z));
+        if(z < 0.00001) break;
+        z = 1 / z;
+
+        scratch_value = out_denominator;
+        out_denominator = (out_denominator * @trunc(z)) + previous_denominator;
+        previous_denominator = scratch_value;
+
+        out_numerator = @floor(original_abs_value * out_denominator + 0.5);
+
+        if(@abs(original_abs_value - (out_numerator / out_denominator)) < 0.00001) break;
+    } 
+
+
+    return .{out_numerator * decimal_sign, out_denominator};
+}
 
 pub fn Vector2(comptime T: type) type {
     return struct {

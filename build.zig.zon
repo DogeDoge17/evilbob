@@ -36,13 +36,9 @@
             .url = "git+https://github.com/DogeDoge17/zig-minifb.git#f9a67d8dac10d1b3cb9f18ad2ff11e90b2bd4c06",
             .hash = "zig_minifb-0.0.0-O0PEU9ubBgCo01ccVq5lTXAG2iEYnJqbLmvKFaZlsWUu",
         },
-        // .miniaudio_c = .{
-        //     .url = "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.23.tar.gz",
-        //     .hash = "N-V-__8AAPu4vwC_P5AHlL_kEON58uGgrDcJSjGq9Hc5yadh",
-        // },
-        .zaudio = .{
-            .url = "git+https://github.com/zig-gamedev/zaudio.git#bb93ad665b89e302d4515a36b44cb8e73eaf6766",
-            .hash = "zaudio-0.11.0-dev-_M-91kHvPwAlW8MCRI4XiTbTeihqB8Zspgiuw-6Gqgdz",
+        .miniaudio_c = .{
+            .url = "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.23.tar.gz",
+            .hash = "N-V-__8AAPu4vwC_P5AHlL_kEON58uGgrDcJSjGq9Hc5yadh",
         },
     },
     .paths = .{

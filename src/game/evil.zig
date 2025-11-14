@@ -5,7 +5,7 @@ const img = @import("../image.zig");
 
 
 pub const Evil = struct {
-    speed: f32 = 1.0,
+    speed: f32 = 0.75,
     targt: ?*math.Vector2(f32) = null,
     sprite: spr.Sprite = .{ .pos = .{.x = 22, .y = 0 }, .texture = undefined },
     container: *spr.SpriteContainer = undefined,

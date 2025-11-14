@@ -2,6 +2,28 @@ const img = @import("image.zig");
 const std = @import("std");
 const math = @import("math.zig");
 
+
+// boat: 12,11
+// table1: 20, 15
+// table2: 16 15
+// table3: 18 18
+// table4: 8 18
+// table5: 10 15
+// table6: 7 14
+// table7: 5 17
+// 
+// trash: 6.5 9
+// sink 2: 5.5 9
+// toilet 1: 6.5 5
+// toilet 2: 5.5 5
+//
+// grill: 12.5 9
+// bug sink: 10 7
+//
+// trash: 15 6.5
+// dumpster: 14 4
+//
+
 /// An image to be rendered in 3D space
 pub const Sprite = struct {
     pos: math.Vector2(f32),
@@ -21,7 +43,7 @@ pub const SpriteContainer = struct {
         ids += 1;
     }
 
-    pub fn createSprite(self: *@This(), allocator:std.mem.Allocator ,pos: math.Vector2(f32), texture: img.Assets) !*Sprite {
+    pub fn createSprite(self: *@This(), allocator:std.mem.Allocator, pos: math.Vector2(f32), texture: img.Assets) !*Sprite {
         const sprite = try allocator.create(Sprite);
         sprite.* = Sprite{
             .pos = pos,
@@ -32,6 +54,11 @@ pub const SpriteContainer = struct {
         try self.add(sprite);
         ids += 1;
         return sprite;
+    }
+
+    pub fn reset(self: *@This()) void {
+        self.sprites.clearAndFree();
+        ids = 0;
     }
 
     pub fn remove(self: *@This(), sprite: *Sprite) void {

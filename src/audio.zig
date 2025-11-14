@@ -1,5 +1,5 @@
 const std = @import("std");
-const miniaudio = @import("zaudio");
+pub const miniaudio = @import("miniaudio_c");
 
 const sound_clips = [_][]const u8{
     "sponge-walk",
@@ -8,12 +8,39 @@ const sound_clips = [_][]const u8{
 };
 var embedded_sounds:[sound_clips.len][]const u8 = undefined;
 
-pub fn init() void {
+const Sound = struct{
+    decoder: miniaudio.struct_ma_decoder = .{},
+    sound: miniaudio.ma_sound = .{},
+};
+
+var engine: miniaudio.ma_engine = .{};
+var sounds: [sound_clips.len]Sound = undefined;
+
+pub fn init() !void {
     inline for(0..sound_clips.len) |i| {
         embedded_sounds[i] = @embedFile(sound_clips[i]);
     }
 
-    miniaudio.init(std.heap.c_allocator); // not my code bro make it go fast 😹
+    var res = miniaudio.ma_engine_init(null, &engine);
+    if(res != miniaudio.MA_SUCCESS){
+        return error.engine_init_failure;
+    }
+    errdefer _ = miniaudio.ma_engine_uninit(&engine);
+
+    for(&sounds, 0..) |*sound, i| {
+        sound.* = .{};
+
+        res = miniaudio.ma_decoder_init_memory( @as(*const anyopaque, @ptrCast(embedded_sounds[i])), embedded_sounds[i].len, null, &sound.decoder);
+        if (res != miniaudio.MA_SUCCESS) return error.decode_fail;
+        errdefer _ = miniaudio.ma_decoder_uninit(&sound.decoder);
+        
+        res = miniaudio.ma_sound_init_from_data_source(&engine, @as(*miniaudio.ma_data_source, @ptrCast(&sound.decoder)),
+            miniaudio.MA_SOUND_FLAG_DECODE, null,  &sound.sound);
+        if (res != miniaudio.MA_SUCCESS) return error.sound_load_fail;
+
+
+
+    }
 }
 
 

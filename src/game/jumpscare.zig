@@ -44,6 +44,8 @@ pub fn update() void {
 }
 
 pub fn render() void {
+    draw.waitForDraws();
+    @memset(draw.buffer, 0xFF000000);
     draw.queueBlitS(image.getImage(scary).?, program, .{ .x = 0, .y = 70, .height = draw.height, .width = draw.width }, null);
 }
 

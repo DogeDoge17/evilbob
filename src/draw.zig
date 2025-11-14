@@ -67,6 +67,11 @@ pub inline fn queueSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
 pub inline fn queueTexSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     threadPool.spawnWg(&waitGroup, drawTexSVLine, .{src_col, shader, x, y, destHeight, srcHeight});
 }
+
+pub inline fn queueTexBSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    threadPool.spawnWg(&waitGroup, drawTexBSVLine, .{src_col, shader, x, y, destHeight, srcHeight});
+}
+
 pub inline fn queueTexBVLine(src_col: []const u32, color:u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     threadPool.spawnWg(&waitGroup, drawTexBVLine, .{src_col, color, x, y, destHeight, srcHeight});
 }
@@ -96,6 +101,12 @@ pub inline fn queueBlitR(texture: *const img.Image, color: u32, dest: math.Recta
 
 pub inline fn queueBlitS(texture: *const img.Image, shader: program, dest: math.Rectangle(usize), src: ?math.Rectangle(usize)) void {
     threadPool.spawnWg(&waitGroup, _tBlitS, .{texture, shader, dest, src});
+}
+
+pub inline fn setPixel(x: usize, y: usize, color: u32) void {
+    if (x >= width or y >= height) return;
+    const idx = y * width + x;
+    buffer[idx] = color;
 }
 
 fn _tBlit(src: *const img.Image, color: u32, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
@@ -305,6 +316,22 @@ pub inline fn drawTexSVLine(src_col: []const u32, shader: program, x: usize, y: 
 
         if (idx >= buffer.len) return;
         buffer[idx] = shader.fragment(pixel, shader.args);
+    }
+}
+
+/// Draws a vertical line with texture mapping and a fragment shader
+pub inline fn drawTexBSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    if (x >= width or y >= height or destHeight == 0 or srcHeight == 0 or src_col.len == 0) return;
+    columnMutex[x].lock();
+    defer columnMutex[x].unlock();
+
+    for(0..destHeight) |dy| {
+        const sy = (dy * srcHeight) / destHeight;
+        const pixel = src_col[sy];
+        const idx = (y + dy) * width + x;
+
+        if (idx >= buffer.len) return;
+        buffer[idx] = blendOver(buffer[idx], shader.fragment(pixel, shader.args));
     }
 }
 

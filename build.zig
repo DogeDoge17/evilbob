@@ -1,24 +1,6 @@
 const std = @import("std");
 
 fn addAssets(b: *std.Build, exe: *std.Build.Step.Compile) !void {
-    // const assets = [_]struct { []const u8, []const u8 }{
-    //     .{ "assets/sponge-walk.mp3", "sponge-walk" },
-    //     .{ "assets/im-evil-fella.mp3", "im-evil-fella" },
-    //     .{ "assets/im-evil-spongebob.mp3", "im-evil-spongebob" },
-    //     .{ "assets/playbtn.tga", "playbtn" },
-    //     .{ "assets/comic.tga", "comic_tga" },
-    //     .{ "assets/comic.tga", "comic_tga" },
-    //     .{ "assets/evilbob.tga", "evilbob" },
-    //     .{ "assets/wall1.tga", "wall1" },
-    //     .{ "assets/door.tga", "door" },
-    //     .{ "assets/window.tga", "window" },
-    //     .{ "assets/food-window.tga", "food_window" },
-    //     .{ "assets/fence.tga", "fence" },
-    //     .{ "assets/wood.tga", "wood" },
-    //     .{ "assets/wood-door.tga", "wood_door" },
-    //     .{ "assets/main-door-l.tga", "main_door_l" },
-    //     .{ "assets/main-door-r.tga", "main_door_r"}, 
-    // };   
     var dir = try std.fs.cwd().openDir("assets",.{ .iterate = true }); 
     var assets = try std.ArrayList(struct { []const u8, []const u8 }).initCapacity(b.allocator, 16);
     defer assets.deinit(b.allocator);
@@ -34,7 +16,7 @@ fn addAssets(b: *std.Build, exe: *std.Build.Step.Compile) !void {
 
         const name = blk: {
             if (std.mem.endsWith(u8, entry.name, ".fntdat"))
-                break :blk path["assets/".len..];
+            break :blk path["assets/".len..];
             break :blk path["assets/".len..std.mem.lastIndexOf(u8, path, ".") orelse file_name.len];
         };
         try assets.append(b.allocator, .{ path, name });
@@ -57,6 +39,7 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "evilbob",
+        .use_llvm = true,
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
@@ -64,18 +47,34 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "evilbob", .module = mod },
             },
+            .link_libc = true,
         }),
     });
-    const zaudio = b.dependency("zaudio", .{});
+
+    const miniaudio_dep = b.dependency("miniaudio_c", .{ .target = target, .optimize = optimize });
+    const miniaudio_lib = b.addLibrary(.{
+        .name = "miniaudio",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    miniaudio_lib.addCSourceFile(.{ .file = miniaudio_dep.path("miniaudio.c"), .flags = &.{"-fno-sanitize=undefined"} });
+    const miniaudio_translated = b.addTranslateC(.{
+        .root_source_file = miniaudio_dep.path("miniaudio.h"),
+        .target = target,
+        .optimize = optimize,
+    });
 
     const minifb_dep = b.dependency("zig_minifb", .{.target = target, .optimize = optimize });
     const minifb = minifb_dep.module("minifb");
     exe.root_module.addImport("minifb", minifb);
+    exe.root_module.addImport("miniaudio_c", miniaudio_translated.createModule());
     exe.root_module.addIncludePath(b.path("src"));
     exe.root_module.addEmbedPath(b.path("assets"));
-    exe.root_module.addImport("zaudio", zaudio.module("root"));
-    exe.linkLibrary(zaudio.artifact("miniaudio"));
-    exe.linkLibC();
+    exe.linkLibrary(miniaudio_lib);
+    
     addAssets(b, exe) catch |err| {
         std.debug.panic("Failed to add assets: {}\n", .{err});
     };

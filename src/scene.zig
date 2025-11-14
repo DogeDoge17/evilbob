@@ -8,10 +8,12 @@ pub const VTable = struct {
 
 pub var loadedScene: ?VTable = null;
 
+pub var changed: bool = false;
 pub fn loadScene(comptime T: anytype) void {
     if(loadedScene) |loaded| {
         loaded.deinit();
     }
+    defer changed = true;
 
     loadedScene = .{
         .deinit = @as(*const fn() void, @ptrCast(&@field(T, "deinit"))),
@@ -21,6 +23,11 @@ pub fn loadScene(comptime T: anytype) void {
         .update = @as(*const fn() void, @ptrCast(&@field(T, "update"))),
     };
     loadedScene.?.init();
+}
+
+pub inline fn check() bool {
+    defer changed = false;
+    return changed;
 }
 
 pub inline fn update() void {

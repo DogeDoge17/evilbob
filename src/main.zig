@@ -51,7 +51,7 @@ pub fn main() !void {
     try input.initInput(&window, std.heap.page_allocator);
     try draw.initThreading();
     try image.init();
-    audio.init();
+    try audio.init();
 
     const buffer: []u32 = try std.heap.page_allocator.alloc(u32, screenWidth * screenHeight);
     defer std.heap.page_allocator.free(buffer);
@@ -64,12 +64,22 @@ pub fn main() !void {
         .{ .t_type = .WN, .texture = .window, },
         .{ .t_type = .FW, .texture = .food_window, },
         .{ .t_type = .FN, .texture = .fence, },
+        .{ .t_type = .FL, .texture = .fence, .directional = true, .n_texture = .fence, .translucent = true },
         .{ .t_type = .WD, .texture = .wood, },
         .{ .t_type = .KK, .texture = .wood, .directional = true, .e_texture = .wood, .w_texture =  .wall1},
         .{ .t_type = .KD, .texture = .door,.solid = false, .directional = true, .e_texture = .wood_door, .w_texture =  .door},
+        .{ .t_type = .KS, .texture = .safe_wall, .solid = true, .directional = true, .s_texture = .safe_wall, .n_texture = .wall1},
         .{ .t_type = .D1, .texture = .main_door_l, .solid = false  },
         .{ .t_type = .D2, .texture = .main_door_r, .solid = false  },
     };
+
+    render.floors = .{
+        .{ .f_type = .AR, .texture = null },
+        .{ .f_type = .WD, .texture = .wood },
+        .{ .f_type = .SD, .texture = .sand },
+        .{ .f_type = .MT, .texture = .wall1 },
+    };
+
     var cam: render.Camera = .{ 
         .dir = .{ .x = -1, .y = 0 }, 
         .plane = .{ .x = 0, .y = 0.95 }, 
@@ -79,25 +89,27 @@ pub fn main() !void {
 
     render.the_font = try render.Font.load(std.heap.page_allocator);
 
-    var theContainer = sprite.SpriteContainer{
+    var theContainer = sprite.SpriteContainer {
         .sprites = std.AutoArrayHashMap(usize, *sprite.Sprite).init(std.heap.page_allocator),
     };
     render.curr_sprites = &theContainer;
 
     sceneManager.loadScene(@import("game/title.zig"));
+    sceneManager.changed = false;
     while (true) {
         time.update(); 
         input.update(time.frame);
 
+        if(sceneManager.check()) continue;
         sceneManager.update();
 
-        draw.waitForDraws();
-        @memset(buffer, minifb.argb(255, 0, 0, 0));
 
         draw.waitForDraws();
+        if(sceneManager.check()) continue;
         sceneManager.render();
 
         draw.waitForDraws();
+        if(sceneManager.check()) continue;
         sceneManager.postRender();
 
 

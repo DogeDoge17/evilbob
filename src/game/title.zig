@@ -90,6 +90,9 @@ pub fn update() void {
 }
 
 pub fn render() void {
+    draw.waitForDraws();
+    @memset(draw.buffer, renderer.argb(255, 0, 0, 0));
+
     play_button.render();
     spong.render();
     const tempSep = renderer.the_font.line_seperation;

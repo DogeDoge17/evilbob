@@ -1,17 +1,24 @@
-const draw = @import("draw.zig");
+pub const draw = @import("draw.zig");
 const minifb = @import("minifb");
 const math = @import("math.zig");
-const img = @import("image.zig");
+pub const img = @import("image.zig");
 const std = @import("std");
-const sprite = @import("sprite.zig");
+pub const sprite = @import("sprite.zig");
 pub const argb = minifb.argb;
 
-pub fn extract_colors(color: u32) [4]u8 {
+pub fn extractColors(color: u32) [4]u8 {
     const a = @as(u8, @intCast((color >> 24) & 0xFF));
     const r = @as(u8, @intCast((color >> 16) & 0xFF));
     const g = @as(u8, @intCast((color >> 8) & 0xFF));
     const b = @as(u8, @intCast(color & 0xFF));
     return .{a, r, g, b};
+}
+
+pub fn combineColors(a: u8, r: u8, g: u8, b: u8) u32 {
+    return (@as(u32, a) << 24)
+        | (@as(u32, r) << 16)
+        | (@as(u32, g) << 8)
+        |  @as(u32, b);
 }
 
 pub const Camera = struct {
@@ -31,11 +38,20 @@ pub const TileType = enum(u32) {
     WN, // Window
     FW, // Food Window 
     FN, // Fence
+    FL, // Locked Fence
     WD, // Wooden Wall
     KK, // Krab Kitchen Mixed Wall
     KD, // Door between Kitchen and office
+    KS, // Mr Krabs Safe
     D1, // left main Door
     D2, // left main Door
+};
+
+pub const FloorType = enum(u32) {
+    AR = 0, // Air
+    WD, // Wood
+    SD, // Sand
+    MT, // Metal
 };
 
 pub const TileInfo = struct {
@@ -43,13 +59,19 @@ pub const TileInfo = struct {
     texture: ?img.Assets,
     solid: bool = true,
     directional: bool = false,
+    translucent:bool = false,
     n_texture: ?img.Assets = null,
     s_texture: ?img.Assets = null,
     e_texture: ?img.Assets = null,
     w_texture: ?img.Assets = null,
 };
 
+pub const FloorInfo = struct {
+    f_type: FloorType,
+    texture: ?img.Assets,
+};
 pub var tiles: [@typeInfo(TileType).@"enum".fields.len]TileInfo = undefined;
+pub var floors: [@typeInfo(FloorType).@"enum".fields.len]FloorInfo = undefined;
 
 // reversed for some reason
 pub const worldMap = [_][26]TileType{
@@ -58,7 +80,7 @@ pub const worldMap = [_][26]TileType{
   .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
   .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
   .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.WL,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.AR,.AR,.AR,.FN },
+  .{ .FN,.AR,.AR,.AR,.WL,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.KS,.WL,.WL,.AR,.AR,.AR,.FN },
   .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
   .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
   .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
@@ -86,7 +108,150 @@ pub const worldMap = [_][26]TileType{
   .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
   .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
   .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FL,.FL,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+};
+
+pub const floorMap = [worldMap.len][26]FloorType{
+   // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+};
+
+pub const ceilingMap = [worldMap.len][26]FloorType{
+   // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
 };
 
 var zBuffer: [800]f32 = undefined;
@@ -122,31 +287,183 @@ pub inline fn getMapTileSafe(x: anytype, y: anytype) ?u32 {
     return @intFromEnum(worldMap[uy][ux]);
 }
 
+pub inline fn getFloorTileSafe(x: anytype, y: anytype) ?u32 {
+    const sameWidth = @as(@TypeOf(x), mapWidth);
+    const sameHeight = @as(@TypeOf(y), mapHeight);
+
+    if (x >= sameWidth or x < 0 or y >= sameHeight or y < 0)
+        return null;
+
+    const ux = @as(usize, switch(@typeInfo(@TypeOf(x))) {
+        .float => @intFromFloat(x),
+        .int =>  @intCast(x),
+        else => return null
+    });
+    const uy = @as(usize, switch(@typeInfo(@TypeOf(y))) {
+        .float => @intFromFloat(y),
+        .int =>  @intCast(y),
+        else => return null
+    });
+
+    return @intFromEnum(floorMap[uy][ux]);
+}
+
+pub inline fn getCeilingTileSafe(x: anytype, y: anytype) ?u32 {
+    const sameWidth = @as(@TypeOf(x), mapWidth);
+    const sameHeight = @as(@TypeOf(y), mapHeight);
+
+    if (x >= sameWidth or x < 0 or y >= sameHeight or y < 0)
+        return null;
+
+    const ux = @as(usize, switch(@typeInfo(@TypeOf(x))) {
+        .float => @intFromFloat(x),
+        .int =>  @intCast(x),
+        else => return null
+    });
+    const uy = @as(usize, switch(@typeInfo(@TypeOf(y))) {
+        .float => @intFromFloat(y),
+        .int =>  @intCast(y),
+        else => return null
+    });
+
+    return @intFromEnum(ceilingMap[uy][ux]);
+}
+
 pub inline fn getMapTileInfo(x: anytype, y: anytype) ?TileInfo {
     const tileIndex = getMapTileSafe(x, y) orelse return null;
     const tileNum = @as(usize, @intCast(tileIndex));
     return tiles[tileNum];
 }
 
+pub inline fn getFloorTileInfo(x: anytype, y: anytype) ?FloorInfo {
+    const tileIndex = getFloorTileSafe(x, y) orelse return null;
+    const tileNum = @as(usize, @intCast(tileIndex));
+    return floors[tileNum];
+}
+
+pub inline fn getCeilingTileInfo(x: anytype, y: anytype) ?FloorInfo {
+    const tileIndex = getCeilingTileSafe(x, y) orelse return null;
+    const tileNum = @as(usize, @intCast(tileIndex));
+    return floors[tileNum];
+}
+
 pub inline fn getMapTile(x: usize, y: usize) u32 {
     return worldMap[y][x];
 }
 
+var h:f32 = 600;
+var w:f32 = 800;
 pub fn render() void {
+    h = @as(f32, @floatFromInt(draw.height));
+    w = @as(f32, @floatFromInt(draw.width));
+    draw.waitForDraws();
+    renderFloorCeiling();
+
     draw.waitForDraws();
     renderWalls();
+
 
     draw.waitForDraws();
     renderSprites();
 }
+
+pub fn renderFloorCeiling() void {
+    const rayDirX0: f32 = cam.dir.x - cam.plane.x;
+    const rayDirY0: f32 = cam.dir.y - cam.plane.y;
+    const rayDirX1: f32 = cam.dir.x + cam.plane.x;
+    const rayDirY1: f32 = cam.dir.y + cam.plane.y;
+
+    const half_h: f32 = h / 2.0;
+    const posZ: f32 = half_h; 
+
+    var y_floor: usize = @as(usize, @intFromFloat(half_h));
+    while (y_floor < draw.height) : (y_floor += 1) {
+        const p = @as(f32, @floatFromInt(y_floor)) - half_h;
+        if (p == 0) continue;
+
+        const rowDistance = posZ / p;
+
+        const floorX = cam.position.x + rowDistance * rayDirX0;
+        const floorY = cam.position.y + rowDistance * rayDirY0;
+
+        const floorStepX = rowDistance * (rayDirX1 - rayDirX0) / w;
+        const floorStepY = rowDistance * (rayDirY1 - rayDirY0) / w;
+
+        draw.queueAny(&drawCeilingFloor, .{floorX, floorY, floorStepX, floorStepY, rowDistance, y_floor}); 
+    }
+}
+
+fn drawCeilingFloor(pfloor_x: f32, pfloor_y: f32, floorStepX: f32, floorStepY: f32, rowDistance: f32, y_floor: usize) void {
+    var floor_x = pfloor_x;
+    var floor_y = pfloor_y;
+
+    for (0..draw.width) |x| {
+        const cellX = @as(i32, @intFromFloat(floor_x));
+        const cellY = @as(i32, @intFromFloat(floor_y));
+
+        const fx = floor_x - @floor(floor_x);
+        const fy = floor_y - @floor(floor_y);
+
+        floor_x += floorStepX;
+        floor_y += floorStepY;
+
+        if (getFloorTileInfo(cellX, cellY)) |finfo| {
+            if (finfo.texture) |tex| {
+                const img_floor = img.getImage(tex) orelse null;
+                if (img_floor) |ft| {
+                    const tx = @min(@as(usize, @intFromFloat(fx * @as(f32, @floatFromInt(ft.width)))), ft.width - 1);
+                    const ty = @min(@as(usize, @intFromFloat(fy * @as(f32, @floatFromInt(ft.height)))), ft.height - 1);
+                    const base_color = ft.pixels[ty * ft.width + tx];
+                    const shaded = shadeByDistance(base_color, rowDistance);
+
+                    draw.setPixel(x, y_floor, shaded);
+                }
+            }
+        }
+
+        const y_ceiling = draw.height - y_floor - 1;
+        if (getCeilingTileInfo(cellX, cellY)) |cinfo| {
+            if (cinfo.texture) |tex| {
+                const img_ceil = img.getImage(tex) orelse null;
+                if (img_ceil) |ct| {
+                    const tx = @min(@as(usize, @intFromFloat(fx * @as(f32, @floatFromInt(ct.width)))), ct.width - 1);
+                    const ty = @min(@as(usize, @intFromFloat(fy * @as(f32, @floatFromInt(ct.height)))), ct.height - 1);
+                    const base_color = ct.pixels[ty * ct.width + tx];
+                    const shaded = shadeByDistance(base_color, rowDistance);
+                    draw.setPixel(x, y_ceiling, shaded);
+                }
+            }
+        }
+    }
+}
+
+fn shadeByDistance(color: u32, dist: f32) u32 {
+    // Simple distance falloff
+    const brightness = @min(1.0, 1.0 / (0.15 * dist + 1.0));
+    var r = @as(f32, @floatFromInt((color >> 16) & 0xff));
+    var g = @as(f32, @floatFromInt((color >> 8) & 0xff));
+    var b = @as(f32, @floatFromInt(color & 0xff));
+
+    r *= brightness;
+    g *= brightness;
+    b *= brightness;
+
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+
+    return (0xff << 24)
+        | (@as(u32, @intFromFloat(r)) << 16)
+        | (@as(u32, @intFromFloat(g)) << 8)
+        | (@as(u32, @intFromFloat(b)));
+}
+
 
 pub fn setWalls() void {
     
 }
 
 pub fn renderSprites() void {
-    const w:f32 = @as(f32, @floatFromInt(draw.width));
-    const h:f32 = @as(f32, @floatFromInt(draw.height));
     const sprites = curr_sprites.getSprites();
 
     // _ = minifb.c.mfb_set_viewport_best_fit(window, @as(c_uint, @intCast(screenWidth)), @as(c_uint, @intCast(screenHeight)));
@@ -199,6 +516,7 @@ pub fn renderSprites() void {
         const sprite_texture = img.getImage(spr.texture) orelse continue;
 
         var stripe:i32 = drawStartX;
+        draw.waitForDraws();
         while (stripe < drawEndX) : (stripe += 1) {
             const texX:usize = @as(usize, @intCast(@divFloor((stripe - (-spriteWidthH + spriteScreenX)) * @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
             
@@ -220,9 +538,6 @@ pub fn renderSprites() void {
     }
 }
 pub fn renderWalls() void {
-    const w:f32 = @as(f32,@floatFromInt(draw.width));
-    const h:f32 = @as(f32,@floatFromInt(draw.height));
-
     xLoop:
     for(0..draw.width) |x| {
         const cameraX:f32 = @as(f32, @floatFromInt(2 * x)) / w - 1;
@@ -259,6 +574,9 @@ pub fn renderWalls() void {
             sideDistY = (@as(f32, @floatFromInt(mapY)) + 1.0 - cam.position.y) * deltaDistY;
         }
 
+        var texture: img.Assets = undefined;
+        var tile_info: TileInfo = undefined;
+        scan:
         while(true) {
             if(sideDistX < sideDistY) {
                 sideDistX += deltaDistX;
@@ -271,32 +589,51 @@ pub fn renderWalls() void {
                 side = 1;
             }
 
-            if (getMapTileSafe(mapX, mapY) orelse continue :xLoop > 0) break;
+            if (getMapTileSafe(mapX, mapY) orelse continue :xLoop > 0) {
+                texture = blk: {
+                    tile_info = getMapTileInfo(mapX, mapY) orelse break :blk null;
+                    if (!tile_info.directional) break :blk tile_info.texture orelse null;
+
+                    if (side == 0) {
+                        if (stepX == -1) {
+                            break :blk tile_info.e_texture orelse null;
+                        } else {
+                            break :blk tile_info.w_texture orelse null;
+                        }
+                    } else {
+                        if (stepY == -1) {
+                            break :blk tile_info.s_texture orelse null;
+                        } else {
+                            break :blk tile_info.n_texture orelse null;
+                        }
+                    }
+                } orelse continue :scan;
+                break;
+            }
         }
         perpWallDist = if (side == 0) (sideDistX - deltaDistX) else (sideDistY - deltaDistY);
         zBuffer[x] = perpWallDist;
 
         const lineHeight:f32 = h / perpWallDist;
         
-        const texture: img.Assets = blk: {
-            const tileInfo = getMapTileInfo(mapX, mapY) orelse break :blk null;
-            if (!tileInfo.directional) break :blk tileInfo.texture orelse null;
-
-            if (side == 0) {
-                if (stepX == -1) {
-                    break :blk tileInfo.e_texture orelse null;
-                } else {
-                    break :blk tileInfo.w_texture orelse null;
-                }
-            } else {
-                if (stepY == -1) {
-                    break :blk tileInfo.n_texture orelse null;
-                } else {
-                    break :blk tileInfo.s_texture orelse null;
-                }
-            }
-        } orelse continue :xLoop;
-    
+        // const texture: img.Assets = blk: {
+        //     const tileInfo = getMapTileInfo(mapX, mapY) orelse break :blk null;
+        //     if (!tileInfo.directional) break :blk tileInfo.texture orelse null;
+        //
+        //     if (side == 0) {
+        //         if (stepX == -1) {
+        //             break :blk tileInfo.e_texture orelse null;
+        //         } else {
+        //             break :blk tileInfo.w_texture orelse null;
+        //         }
+        //     } else {
+        //         if (stepY == -1) {
+        //             break :blk tileInfo.s_texture orelse null;
+        //         } else {
+        //             break :blk tileInfo.n_texture orelse null;
+        //         }
+        //     }
+        // } orelse continue :xLoop;
 
         // const texture = (getMapTileInfo(mapX, mapY) orelse continue :xLoop).texture orelse continue :xLoop;
         
@@ -340,14 +677,25 @@ pub fn renderWalls() void {
         const end_index = texStartY +% texHeight;
         if(texStartY > end_index) continue :xLoop;
 
-        draw.queueTexSVLine(
-            row[texStartY .. end_index],
-            program, 
-            x,
-            @as(usize, @intFromFloat(drawStart)),
-            @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1,
-            texHeight
-        );
+        if(!tile_info.translucent) {
+            draw.queueTexSVLine(
+                row[texStartY .. end_index],
+                program, 
+                x,
+                @as(usize, @intFromFloat(drawStart)),
+                @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1,
+                texHeight
+            );
+        } else {
+            draw.queueTexBSVLine(
+                row[texStartY .. end_index],
+                program, 
+                x,
+                @as(usize, @intFromFloat(drawStart)),
+                @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1,
+                texHeight
+            );
+        }
     }
 }
 
