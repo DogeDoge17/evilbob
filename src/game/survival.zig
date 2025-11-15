@@ -120,7 +120,7 @@ pub fn update() void {
         }
     }
     
-    // bop.update();
+    bop.update();
     if (bop.checkKill()) {
         jumpscare.scare_man = .evilbob;
         @import("../scene.zig").loadScene(jumpscare); 
