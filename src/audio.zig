@@ -1,20 +1,65 @@
 const std = @import("std");
 pub const miniaudio = @import("miniaudio_c");
+pub const math = @import("math.zig");
 
-const sound_clips = [_][]const u8{
-    "sponge-walk",
-    "im-evil-fella",
-    "im-evil-spongebob",
+const sound_clips = [_][:0]const u8{
+    "sponge_walk",
+    "im_evil_fella",
+    "im_evil_spongebob",
+    "sponge_scream",
 };
 var embedded_sounds:[sound_clips.len][]const u8 = undefined;
+pub var sounds: [sound_clips.len]Sound = undefined;
 
-const Sound = struct{
-    decoder: miniaudio.struct_ma_decoder = .{},
-    sound: miniaudio.ma_sound = .{},
+pub var engine: miniaudio.ma_engine = .{};
+
+pub fn resetEngine() void{
+    miniaudio.ma_engine_listener_set_direction(&engine, 0, 0, 0, 0);
+    miniaudio.ma_engine_listener_set_position(&engine, 0, 0, 0, 0);
+    miniaudio.ma_engine_listener_set_velocity(&engine, 0, 0, 0, 0);
+}
+
+pub const Assets = blk: {
+    var fields: [sound_clips.len]std.builtin.Type.EnumField = undefined;
+
+    for (sound_clips, 0..) |name, i| {
+        fields[i] = .{ .name = name, .value = i };
+    }
+
+    const enumInfo = std.builtin.Type.Enum{
+        .tag_type = usize,
+        .fields = &fields,
+        .decls = &[0]std.builtin.Type.Declaration{},
+        .is_exhaustive = false,
+    };
+    break:blk @Type(std.builtin.Type{ .@"enum" = enumInfo });
 };
 
-var engine: miniaudio.ma_engine = .{};
-var sounds: [sound_clips.len]Sound = undefined;
+pub const Sound = struct{
+    decoder: miniaudio.struct_ma_decoder = .{},
+    sound: miniaudio.ma_sound = .{},
+
+    pub fn setPosition(id:Assets, pos: math.Vector2(f32)) void {
+        miniaudio.ma_sound_set_position(&sounds[@as(usize, @intFromEnum(id))].sound, pos.x, 0, pos.y);
+    }
+
+    pub fn play(id:Assets) !void {
+        const res = miniaudio.ma_sound_start(&sounds[@as(usize, @intFromEnum(id))].sound);
+        if(res != miniaudio.MA_SUCCESS) return error.play_fail;
+    }
+
+    pub fn setLoop(id:Assets, looping: bool) void{
+        miniaudio.ma_sound_set_looping(&sounds[@as(usize, @intFromEnum(id))].sound,  @as(c_uint, @intFromBool(looping))); 
+    }
+
+    pub fn stop(id:Assets) void {
+         _ = miniaudio.ma_sound_stop(&sounds[@as(usize, @intFromEnum(id))].sound);
+    }
+
+    pub fn isPlaying(id:Assets) bool {
+        return miniaudio.ma_sound_is_playing(&sounds[@as(usize, @intFromEnum(id))].sound) > 0;
+    }
+};
 
 pub fn init() !void {
     inline for(0..sound_clips.len) |i| {
@@ -38,11 +83,12 @@ pub fn init() !void {
             miniaudio.MA_SOUND_FLAG_DECODE, null,  &sound.sound);
         if (res != miniaudio.MA_SUCCESS) return error.sound_load_fail;
 
-
-
+        miniaudio.ma_sound_set_position(&sound.sound, 0, 0, 0);
+        miniaudio.ma_sound_set_attenuation_model(&sound.sound, miniaudio.ma_attenuation_model_exponential);
+        miniaudio.ma_sound_set_min_distance(&sound.sound, 0.5);
+        miniaudio.ma_sound_set_max_distance(&sound.sound, 50.0);
     }
 }
-
 
 // const Engine = struct {
 //     eng: c.ma_engine = undefined,

@@ -1,8 +1,10 @@
 const render = @import("../render.zig");
 const input = @import("../input.zig");
+const math = @import("../math.zig");
 const time = @import("../time.zig");
-const task = @import("task.zig");
 const img = @import("../image.zig");
+const task = @import("task.zig");
+const audio = @import("../audio.zig");
 const std = @import("std");
 
 pub var cam: *render.Camera = undefined;
@@ -13,8 +15,8 @@ fn canMoveTo(x: f32, y: f32) bool {
 }
 
 pub fn move() void {
-    const move_speed = time.deltaTime * 3.4;
-    const rotation_speed = time.deltaTime * 3.6;
+    const move_speed = time.gameTime * 3.4;
+    const rotation_speed = time.gameTime * 3.6;
 
     var move_x: f32 = 0;
     var move_y: f32 = 0;
@@ -56,9 +58,16 @@ pub fn move() void {
         const potential_x = cam.position.x + norm_x * move_speed;
         const potential_y = cam.position.y + norm_y * move_speed;
 
-        cam.position.x = if (canMoveTo(potential_x, cam.position.y)) potential_x else cam.position.x;
-        cam.position.y = if (canMoveTo(cam.position.x, potential_y)) potential_y else cam.position.y;
-    }
+        const can_x = canMoveTo(potential_x, cam.position.y);
+        const can_y = canMoveTo(cam.position.x, potential_y);
+
+        cam.position.x = if (can_x) potential_x else cam.position.x;
+        cam.position.y = if (can_y) potential_y else cam.position.y;
+
+        audio.miniaudio.ma_engine_listener_set_velocity( &audio.engine, 0,
+            if(can_x) norm_x * move_speed else 0, 0,
+            if(can_y) norm_y * move_speed else 0);
+    } else { audio.miniaudio.ma_engine_listener_set_velocity( &audio.engine, 0, 0, 0, 0); } 
 
     // i wish i couldve used the mouse but minifb doesnt let you lock the cursor in place
     // could implement it with system calls but time
@@ -79,11 +88,14 @@ pub fn move() void {
         cam.plane.x = cam.plane.x * @cos(rotation_speed) - cam.plane.y * @sin(rotation_speed);
         cam.plane.y = old_plane_x * @sin(rotation_speed) + cam.plane.y * @cos(rotation_speed);
     }
-    std.debug.print("Player Position: ({}, {}) Direction: ({}, {}) Plane: ({}, {}) \n", .{cam.position.x, cam.position.y, cam.dir.x, cam.dir.y, cam.plane.x, cam.plane.y});
+    // std.debug.print("Player Position: ({}, {}) Direction: ({}, {}) Plane: ({}, {}) \n", .{cam.position.x, cam.position.y, cam.dir.x, cam.dir.y, cam.plane.x, cam.plane.y});
     if (cam.position.x < 0 or cam.position.y < 0 or cam.position.x >= render.mapWidth or cam.position.y >= render.mapHeight) {
         cam.position.x = render.mapWidth / 2;
         cam.position.y = render.mapHeight / 2;
     }
+
+    audio.miniaudio.ma_engine_listener_set_direction(&audio.engine, 0, -cam.dir.x, 0, -cam.dir.y);
+    audio.miniaudio.ma_engine_listener_set_position(&audio.engine, 0, cam.position.x, 0, cam.position.y);
 }
 
 pub fn init() void {
@@ -91,27 +103,37 @@ pub fn init() void {
 
 pub fn update() void {
     move();
-    // checkTasks();
 }
 
-pub var task_list: [2]task.Task = undefined;
-pub fn checkTasks() void {
-    var closest_task: ?*task.Task = null;
+pub fn checkTasks(check_list: *const task.CheckList) void {
+    closest_task = null;
     var closest_distance: f32 = 9999999;
     const max_distance = 1.5;
 
-    for (&task_list) |*t| {
-        const dist = cam.position.distance((t.sprite orelse continue).pos );
-        if (dist < max_distance and dist < closest_distance and !t.completed) {
-            closest_task = t;
+    var curr_task = check_list.head;
+
+    while (curr_task) |t| {
+        const dist = cam.position.distance((t.task.sprite orelse continue).pos );
+        if (dist < max_distance and dist < closest_distance and !t.task.completed) {
+            closest_task = t.task;
             closest_distance = dist;
         }
+        curr_task = t.next;
     }
+
+    // std.debug.print("Closest Task Distance: {}\n", .{closest_distance});
 
     if (closest_task) |t| {
         if (input.getKey(.E)) {
             t.work();
-            t.drawStatus();
         }
+    }
+}
+
+
+var closest_task: ?*task.Task = null;
+pub fn postRender() void {
+    if (closest_task) |t| {
+        t.drawStatus();
     }
 }

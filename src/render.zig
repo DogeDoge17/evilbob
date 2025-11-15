@@ -52,6 +52,7 @@ pub const FloorType = enum(u32) {
     WD, // Wood
     SD, // Sand
     MT, // Metal
+    GW, // Green Wood
 };
 
 pub const TileInfo = struct {
@@ -140,23 +141,23 @@ pub const floorMap = [worldMap.len][26]FloorType{
   .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
   .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
   .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
+  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
   .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
   .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
   .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
@@ -518,7 +519,7 @@ pub fn renderSprites() void {
         var stripe:i32 = drawStartX;
         draw.waitForDraws();
         while (stripe < drawEndX) : (stripe += 1) {
-            const texX:usize = @as(usize, @intCast(@divFloor((stripe - (-spriteWidthH + spriteScreenX)) * @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
+            const texX:usize = @as(usize, @intCast(@divFloor((stripe -% (-spriteWidthH +% spriteScreenX)) *% @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
             
             if (transformY < zBuffer[@as(usize, @intCast(stripe))]) {
                 const clampedTexX = @min(texX, sprite_texture.height - 1);

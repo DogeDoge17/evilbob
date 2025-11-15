@@ -234,7 +234,7 @@ pub const Task = struct {
 
     pub fn work(self: *@This()) void {
         if (self.completed) return;
-        self.progress += time.deltaTime;
+        self.progress += time.gameTime;
 
         if (self.progress >= self.length) {
             self.progress = self.length;

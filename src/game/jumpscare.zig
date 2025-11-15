@@ -2,6 +2,7 @@ const time = @import("../time.zig");
 const scene = @import("../scene.zig");
 const draw = @import("../draw.zig");
 const image = @import("../image.zig");
+const audio = @import("../audio.zig");
 
 var scary:image.Assets = undefined;
 var timer:f32 = 0;
@@ -23,16 +24,18 @@ pub fn init() void {
     flip_timer = 0.08;
     program.args.u1 = 0;
     scary = .evilbob;
+    audio.resetEngine();
+    audio.Sound.play(.sponge_scream) catch { @import("std").debug.print("pretend its screaming", .{}); };
 }
 
 pub fn update() void {
-    timer -= time.deltaTime;
+    timer -= time.gameTime;
     if(timer <= 0) {
         scene.loadScene(@import("title.zig"));
         return;
     }
 
-    flip_timer -= time.deltaTime;
+    flip_timer -= time.gameTime;
     if (flip_timer <= 0) {
         flip_timer = 0.08;
         if(program.args.u1 == 0) {
@@ -52,5 +55,5 @@ pub fn render() void {
 pub fn postRender() void { }
 
 pub fn deinit() void {
-
+    audio.Sound.stop(.sponge_scream);
 }

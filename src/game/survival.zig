@@ -7,6 +7,7 @@ const img = @import("../image.zig");
 const evil = @import("evil.zig");
 const player = @import("player.zig");
 const task = @import("task.zig");
+const input = @import("../input.zig");
 
 var camera: renderer.Camera = undefined;
 var bop:evil.Evil = undefined;
@@ -30,7 +31,7 @@ pub fn init() !void {
     player.cam = &camera;
 
     won = false;
-    opacity_pixel_storage[0] = 0x00000000;
+    win_opacity = 0;
 
     bop = evil.Evil.init(renderer.curr_sprites, .{ .x = 0.5, .y = 0.5 }, 2, evilBoob);
     bop.targt = &player.cam.position;
@@ -51,6 +52,7 @@ pub fn init() !void {
 pub fn deinit() void {
     check_list.clockOut();        
     renderer.curr_sprites.reset();
+    bop.kill();
     for (misc_sprites) |s| {
         std.heap.page_allocator.destroy(s);
     }
@@ -58,34 +60,27 @@ pub fn deinit() void {
 
 
 // var opacity_pixel: u32 = 0x00000000;
-const opacity_img: img.Image = img.Image{
+const black_img: img.Image = img.Image{
     .width = 1,
     .height = 1,
-    .pixels = &opacity_pixel_storage,
+    .pixels = &.{ 0xFF000000 },
 };
-var opacity_pixel_storage: [1]u32 = .{ 0x00000000 };
+var win_opacity: f32 = 0;
 
+var paused: bool = false;
 var won: bool = false;
 pub fn update() void {
+    if(input.getKeyDown(.Escape)) {
+        paused = !paused;
+        time.gameSpeed = if(paused) 0 else 1;
+    }
+
     if (won) {
-        const argb = renderer.extractColors(opacity_img.pixels[0]);
-        const pixel: *u32 = &opacity_pixel_storage[0];
-
-        const fa = @as(f32, @floatFromInt(argb[0]));
-        const newAlpha = fa + 255 * time.deltaTime;
+        win_opacity = win_opacity + 255 * time.gameTime;
             
-        if(newAlpha > 255) {
-
+        if(win_opacity > 255) {
             @import("../scene.zig").loadScene(@import("win.zig"));
-            return;
         }
-
-        pixel.* = renderer.combineColors(
-            @as(u8, @intFromFloat(newAlpha)), 
-            argb[1],
-            argb[2],
-            argb[3],
-        );
         return;
     }
 
@@ -102,7 +97,7 @@ pub fn update() void {
 pub fn render() void {
     if(won) {
         draw.waitForDraws();
-        draw.blit(&opacity_img, 0xFFFFFFFF, 0, 0, draw.width, draw.height); 
+        draw.blit(&black_img, renderer.combineColors(@as(u8, @intFromFloat(win_opacity)), 0,0,0), 0, 0, draw.width, draw.height); 
         return;
     }
 
@@ -115,4 +110,10 @@ pub fn render() void {
 pub fn postRender() void {
     player.postRender();
     check_list.drawList();
+    if(paused) {
+        draw.waitForDraws();
+        draw.blit(&black_img, renderer.combineColors(200, 0,0,0), 0, 0, draw.width, draw.height); 
+        draw.waitForDraws();
+        renderer.the_font.renderString(0xFFFFFFFF, draw.width / 2 - 62, draw.height / 2 - 12, 24, "PAUSED");
+    }
 }

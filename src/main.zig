@@ -78,6 +78,7 @@ pub fn main() !void {
         .{ .f_type = .WD, .texture = .wood },
         .{ .f_type = .SD, .texture = .sand },
         .{ .f_type = .MT, .texture = .wall1 },
+        .{ .f_type = .GW, .texture = .green_wood },
     };
 
     var cam: render.Camera = .{ 

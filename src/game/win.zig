@@ -45,16 +45,16 @@ var velocity: f32 = 0.35;
 var black_wait: f32 = 0.5;
 pub fn update() void {
     if(renderer.extractColors(opacity_img.pixels[0])[0] >= 255) {
-        black_wait -= time.deltaTime;
+        black_wait -= time.gameTime;
         if (black_wait <= 0) {
             scene.loadScene(@import("title.zig"));
         }
         return;
     }
 
-    progress += time.deltaTime;
+    progress += time.gameTime;
     
-    camera.position.y += velocity * time.deltaTime;
+    camera.position.y += velocity * time.gameTime;
     if (progress > 6 or camera.position.y > renderer.mapHeight - 1) {
         camera.position.y = renderer.mapHeight - 1;
     }
@@ -65,7 +65,7 @@ pub fn update() void {
         const pixel: *u32 = &opacity_pixel_storage[0];
 
         const fa = @as(f32, @floatFromInt(argb[0]));
-        const newAlpha = @min(fa + 255 * time.deltaTime, 255);
+        const newAlpha = @min(fa + 255 * time.gameTime, 255);
             
         pixel.* = renderer.combineColors(
             @as(u8, @intFromFloat(newAlpha)), 
@@ -76,7 +76,7 @@ pub fn update() void {
     }
     
     if (progress > 2) {
-        velocity += 5.0 * time.deltaTime;
+        velocity += 5.0 * time.gameTime;
     }
 }
 

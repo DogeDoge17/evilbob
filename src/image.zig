@@ -48,7 +48,6 @@ const image_uris = [_][:0]const u8{
     "dumpster_finished",
     "safe_wall",
     "krabs_furn",
-    "skybox",
     "kitchen_sink_clean",
     "kitchen_sink",
     "count_finish",
@@ -61,6 +60,8 @@ const image_uris = [_][:0]const u8{
     "trash",
     "grill",
     "sand",
+    "skybox",
+    "green_wood",
     "comic",
 };
 

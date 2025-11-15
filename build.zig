@@ -24,7 +24,7 @@ fn addAssets(b: *std.Build, exe: *std.Build.Step.Compile) !void {
 
     for (assets.items) |asset| {
         const path, const name = asset;
-        std.debug.print("Adding asset: {s} as {s}\n", .{path, name});
+        // std.debug.print("Adding asset: {s} as {s}\n", .{path, name});
         exe.root_module.addAnonymousImport(name, .{ .root_source_file = b.path(path) });
     }
 }
