@@ -1,6 +1,7 @@
 # Evilbob
 
 A multithreaded 2.5D raycaster made in zig. 
+<img width="1400" height="1049" alt="image" src="https://github.com/user-attachments/assets/99d6f829-1adf-49d0-9f82-8406e8668b50" />
 
 # How to play
 * View your check list for the tasks you must complete in your run. They will randomize each night.
