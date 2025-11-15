@@ -8,6 +8,15 @@ var scary:image.Assets = undefined;
 var timer:f32 = 0;
 var flip_timer:f32 = 0;
 var program:draw.program = .{ .fragment = &inverse, .args = .{} };
+var le_sound: audio.Assets = .sponge_scream;
+
+
+const JumpscareTypes = enum {
+    evilbob,
+    bear_5,
+};
+pub var scare_man:JumpscareTypes = .evilbob;
+
 fn inverse (pixel: u32, args: draw.program_args) u32 {
     if(args.u1 == 0)
         return pixel;
@@ -20,12 +29,26 @@ fn inverse (pixel: u32, args: draw.program_args) u32 {
 }
 
 pub fn init() void {
-    timer = 3;
+    timer = switch(scare_man ) {
+        .evilbob => 3,
+        .bear_5 => 4.7778,
+    };
     flip_timer = 0.08;
     program.args.u1 = 0;
     scary = .evilbob;
     audio.resetEngine();
-    audio.Sound.play(.sponge_scream) catch { @import("std").debug.print("pretend its screaming", .{}); };
+
+    switch (scare_man) {
+        .evilbob => scary = .evilbob,
+        .bear_5 => scary = .bear_5_jumpscare_0,
+    }
+
+    le_sound = switch (scare_man) {
+        .evilbob => .sponge_scream,
+        .bear_5 => .bear_5_scream,
+    };
+
+    audio.Sound.play(le_sound) catch { @import("std").debug.print("pretend its screaming", .{}); };
 }
 
 pub fn update() void {
@@ -35,6 +58,30 @@ pub fn update() void {
         return;
     }
 
+    switch (scare_man) {
+        .evilbob => spongeUpdate(),
+        .bear_5 => bear5Update(),
+    }
+}
+
+
+pub fn bear5Update() void { 
+    if(timer > 3.99) {
+        scary = .bear_5_jumpscare_0;
+    }
+    else if (timer > 2.67) {
+        scary = .bear_5_jumpscare_1;
+    }
+    else if (timer > 1.224) {
+        scary = .bear_5_jumpscare_2;
+    }
+    else {
+        scary = .bear_5_jumpscare_3;
+    }
+
+}
+
+pub fn spongeUpdate() void { 
     flip_timer -= time.gameTime;
     if (flip_timer <= 0) {
         flip_timer = 0.08;
@@ -44,6 +91,7 @@ pub fn update() void {
             program.args.u1 = 0;
         }
     }
+
 }
 
 pub fn render() void {
@@ -55,5 +103,5 @@ pub fn render() void {
 pub fn postRender() void { }
 
 pub fn deinit() void {
-    audio.Sound.stop(.sponge_scream);
+    audio.Sound.stop(le_sound);
 }

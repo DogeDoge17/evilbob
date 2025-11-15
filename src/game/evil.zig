@@ -5,12 +5,6 @@ const img = @import("../image.zig");
 const audio = @import("../audio.zig");
 const std = @import("std");
 
-const sounds = [3]audio.Assets{
-    .sponge_walk,
-    .im_evil_fella,
-    .im_evil_spongebob,
-};
-
 pub const Evil = struct {
     speed: f32 = 0.75,
     targt: ?*math.Vector2(f32) = null,
@@ -18,11 +12,10 @@ pub const Evil = struct {
     container: *spr.SpriteContainer = undefined,
     talk_timer:f32 = 4,
     talk_rnd: std.Random.DefaultPrng = undefined,
+    sound_pool: []const audio.Assets = &.{},
+    idle_sounds: []const audio.Assets = &.{},
     
     pub fn init(containter: *spr.SpriteContainer, position: math.Vector2(f32), speed: f32, texture:img.Assets) @This() {
-        audio.Sound.setLoop(.sponge_walk, true);
-        audio.Sound.play(.sponge_walk) catch {};
-
         return .{
             .sprite = .{ .pos = position, .texture = texture },
             .speed = speed,
@@ -36,6 +29,13 @@ pub const Evil = struct {
         };
     }
     
+    pub fn setTarget(self: *@This(), target: *math.Vector2(f32)) void {
+        self.targt = target;
+        if(self.sound_pool.len == 0) return;
+        audio.Sound.play(self.sound_pool[0]) catch {};
+        audio.Sound.setLoop(self.sound_pool[0], true);
+    }
+
     pub fn checkKill(self: *const @This()) bool {
         if (self.targt) |targetPos| {
             return self.sprite.pos.distance(targetPos.*) < 0.8;
@@ -44,7 +44,7 @@ pub const Evil = struct {
     }
 
     pub fn moveSound(self: *@This()) void {
-        for(sounds) |sound| {
+        for(self.sound_pool) |sound| {
             audio.Sound.setPosition(sound, self.sprite.pos);
         } 
     }
@@ -56,14 +56,16 @@ pub const Evil = struct {
         }
 
         self.talk_timer -= time.gameTime;
-        if (self.talk_timer <= 0 and self.talk_rnd.random().intRangeAtMost(u8, 0, 4) == 2) {
-            audio.Sound.play(sounds[self.talk_rnd.random().intRangeAtMost(usize, 1, 2)]) catch {};
+        if (self.talk_timer <= 0 and self.talk_rnd.random().intRangeAtMost(u8, 0, 4) == 2 and self.idle_sounds.len > 0) {
+            audio.Sound.play(self.idle_sounds[self.talk_rnd.random().intRangeAtMost(usize, 0, self.idle_sounds.len - 1)]) catch {};
             self.talk_timer = 8;
         }
     }
     
     pub fn kill(self: *@This()) void {
         self.container.remove(&self.sprite);
-        audio.Sound.stop(.sponge_walk);
+        for(self.sound_pool) |sound| {
+            audio.Sound.stop(sound);
+        }
     }
 };

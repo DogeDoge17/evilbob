@@ -1,4 +1,5 @@
 const std = @import("std");
+const jumpscare = @import("jumpscare.zig");
 const renderer = @import("../render.zig");
 const time = @import("../time.zig");
 const draw = @import("../draw.zig"); 
@@ -8,9 +9,11 @@ const evil = @import("evil.zig");
 const player = @import("player.zig");
 const task = @import("task.zig");
 const input = @import("../input.zig");
+const bear5 = @import("bear5.zig");
 
 var camera: renderer.Camera = undefined;
 var bop:evil.Evil = undefined;
+var bear: bear5.Bear5 = undefined;
 var evilBoob: img.Assets = .evilbob;
 
 var check_list:task.CheckList = .{};
@@ -32,11 +35,19 @@ pub fn init() !void {
 
     won = false;
     win_opacity = 0;
+    renderer.screen_tint = 0x00000000;
 
-    bop = evil.Evil.init(renderer.curr_sprites, .{ .x = 0.5, .y = 0.5 }, 2, evilBoob);
-    bop.targt = &player.cam.position;
+    bop = evil.Evil.init(renderer.curr_sprites, .{ .x = 0.5, .y = 0.5 }, 1.4, evilBoob);
+    bop.setTarget(&player.cam.position);
+    bop.sound_pool = &.{ .sponge_walk, .im_evil_fella, .im_evil_spongebob, };
+    bop.idle_sounds = &.{ .im_evil_fella, .im_evil_spongebob, };
     renderer.curr_sprites.add(&bop.sprite) catch |err| {
-            @import("std").debug.panic("Failed to add evil sprite {}", .{err});
+        std.debug.panic("Failed to add evil sprite {}", .{err});
+    };
+
+    bear = .Init(renderer.curr_sprites, .{ .x = renderer.mapWidth / 2, .y = -10 }, 4.5, .bear_5);
+    renderer.curr_sprites.add(&bear.ai.sprite) catch |err| {
+        std.debug.panic("Failed to add evil sprite {}", .{err});
     };
 
     check_list = try task.CheckList.MakeWork(std.heap.page_allocator, 5, task.possible_tasks[0..task.possible_tasks.len]);
@@ -53,6 +64,7 @@ pub fn deinit() void {
     check_list.clockOut();        
     renderer.curr_sprites.reset();
     bop.kill();
+    bear.deinit();
     for (misc_sprites) |s| {
         std.heap.page_allocator.destroy(s);
     }
@@ -69,6 +81,7 @@ var win_opacity: f32 = 0;
 
 var paused: bool = false;
 var won: bool = false;
+var did_bear_roll: bool = false;
 pub fn update() void {
     if(input.getKeyDown(.Escape)) {
         paused = !paused;
@@ -84,14 +97,42 @@ pub fn update() void {
         return;
     }
 
+    if(input.getKeyDown(.Tab)) {
+        check_list.visible = !check_list.visible;
+    }
+
     player.update();
     player.checkTasks(&check_list);
     if(check_list.checkList()) {
         won = player.cam.position.distance(.{ .x = 13, .y = 31 }) < 1;
+        if(!did_bear_roll) {
+            var prng = std.Random.DefaultPrng.init(blk: {
+                var seed: u64 = undefined;
+                std.posix.getrandom(std.mem.asBytes(&seed)) catch { seed = 10; } ;
+                break :blk seed;
+            });
+            const roll = prng.random().intRangeAtMost(u8, 0, 3);
+            if(roll == 2) {
+                bear.deploy(&player.cam.position);
+            }
+
+            did_bear_roll = true;
+        }
     }
     
-    bop.update();
-    if (bop.checkKill()) { @import("../scene.zig").loadScene(@import("jumpscare.zig")); return; }
+    // bop.update();
+    if (bop.checkKill()) {
+        jumpscare.scare_man = .evilbob;
+        @import("../scene.zig").loadScene(jumpscare); 
+        return; 
+    }
+
+    bear.update();
+    if (bear.ai.checkKill()) { 
+        jumpscare.scare_man = .bear_5;
+        @import("../scene.zig").loadScene(jumpscare);
+        return; 
+    }
 }
 
 pub fn render() void {
@@ -110,6 +151,7 @@ pub fn render() void {
 pub fn postRender() void {
     player.postRender();
     check_list.drawList();
+    bear.postRender();
     if(paused) {
         draw.waitForDraws();
         draw.blit(&black_img, renderer.combineColors(200, 0,0,0), 0, 0, draw.width, draw.height); 

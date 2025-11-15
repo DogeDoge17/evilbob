@@ -62,6 +62,11 @@ const image_uris = [_][:0]const u8{
     "sand",
     "skybox",
     "green_wood",
+    "bear_5",
+    "bear_5_jumpscare_0",
+    "bear_5_jumpscare_1",
+    "bear_5_jumpscare_2",
+    "bear_5_jumpscare_3",
     "comic",
 };
 

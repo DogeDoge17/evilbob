@@ -7,6 +7,9 @@ const sound_clips = [_][:0]const u8{
     "im_evil_fella",
     "im_evil_spongebob",
     "sponge_scream",
+    "bear_5_scream",
+    "bear_5_theme",
+    "bear_5_warning",
 };
 var embedded_sounds:[sound_clips.len][]const u8 = undefined;
 pub var sounds: [sound_clips.len]Sound = undefined;
@@ -83,6 +86,7 @@ pub fn init() !void {
             miniaudio.MA_SOUND_FLAG_DECODE, null,  &sound.sound);
         if (res != miniaudio.MA_SUCCESS) return error.sound_load_fail;
 
+        miniaudio.ma_sound_set_spatialization_enabled(&sound.sound, 1);
         miniaudio.ma_sound_set_position(&sound.sound, 0, 0, 0);
         miniaudio.ma_sound_set_attenuation_model(&sound.sound, miniaudio.ma_attenuation_model_exponential);
         miniaudio.ma_sound_set_min_distance(&sound.sound, 0.5);

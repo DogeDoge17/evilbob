@@ -16,6 +16,7 @@ pub fn init() void {
     progress = 0;
     velocity = 0.5;
     black_wait = 0.5;
+    renderer.screen_tint = 0x00000000;
 
     renderer.cam = &camera;
 
@@ -31,12 +32,6 @@ pub fn deinit() void {
     std.heap.page_allocator.destroy(win_bob);
 }
 
-const opacity_img: renderer.img.Image = .{
-    .width = 1,
-    .height = 1,
-    .pixels = &opacity_pixel_storage,
-};
-var opacity_pixel_storage: [1]u32 = .{ 0x00000000 };
 
 
 
@@ -44,7 +39,7 @@ var progress: f32 = 0;
 var velocity: f32 = 0.35;
 var black_wait: f32 = 0.5;
 pub fn update() void {
-    if(renderer.extractColors(opacity_img.pixels[0])[0] >= 255) {
+    if(renderer.extractColors(renderer.screen_tint)[0] >= 255) {
         black_wait -= time.gameTime;
         if (black_wait <= 0) {
             scene.loadScene(@import("title.zig"));
@@ -60,14 +55,12 @@ pub fn update() void {
     }
 
     if(progress > 4) {
-
-        const argb = renderer.extractColors(opacity_img.pixels[0]);
-        const pixel: *u32 = &opacity_pixel_storage[0];
+        const argb = renderer.extractColors(renderer.screen_tint);
 
         const fa = @as(f32, @floatFromInt(argb[0]));
         const newAlpha = @min(fa + 255 * time.gameTime, 255);
             
-        pixel.* = renderer.combineColors(
+        renderer.screen_tint = renderer.combineColors(
             @as(u8, @intFromFloat(newAlpha)), 
             argb[1],
             argb[2],
@@ -84,7 +77,9 @@ pub fn render() void {
     renderer.draw.waitForDraws();
     @memcpy(renderer.draw.buffer, skybox.pixels);
     renderer.render(); 
-    renderer.draw.blit(&opacity_img, 0xFFFFFFFF, 0, 0, renderer.draw.width, renderer.draw.height);
+    renderer.tintScreen();
+
+    // renderer.draw.blit(&opacity_img, 0xFFFFFFFF, 0, 0, renderer.draw.width, renderer.draw.height);
 }
 
 pub fn postRender() void {

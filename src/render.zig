@@ -21,6 +21,9 @@ pub fn combineColors(a: u8, r: u8, g: u8, b: u8) u32 {
         |  @as(u32, b);
 }
 
+
+
+
 pub const Camera = struct {
     position: math.Vector2(f32),
     dir: math.Vector2(f32),
@@ -733,6 +736,20 @@ fn adjustBrightnessProgram(color: u32, args: draw.program_args) u32 {
         | (@as(u32, @intFromFloat(r * 255.0)) << 16)
         | (@as(u32, @intFromFloat(g * 255.0)) << 8)
         | (@as(u32, @intFromFloat(b * 255.0)));
+}
+
+const opacity_img: img.Image = .{
+    .width = 1,
+    .height = 1,
+    .pixels = &opacity_pixel_storage,
+};
+var opacity_pixel_storage: [1]u32 = .{ 0xFFFFFFFF };
+
+pub var screen_tint: u32 = 0x00000000;
+pub fn tintScreen() void {
+    if(screen_tint == 0x00000000) return;
+
+    draw.queueBlit(&opacity_img, screen_tint, 0, 0, draw.width, draw.height);
 }
 
 const internal_string = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"; 
