@@ -5,7 +5,6 @@ const input = @import("input.zig");
 const image = @import("image.zig");
 const render = @import("render.zig");
 const sprite = @import("sprite.zig");
-const title = @import("game/title.zig");
 const sceneManager = @import("scene.zig");
 const time = @import("time.zig");
 const math = @import("math.zig");
@@ -41,6 +40,7 @@ fn windowResizeCallback(window: *minifb.cWindow, width: i32, height: i32) callco
 
     std.debug.print("Window resized to {}x{} {} {}\n", .{width, height, input.mx_offset, input.my_offset});
 }
+
 pub fn main() !void {
     var window = minifb.Window.openEx("Evilbopb", screenWidth, screenHeight, .resizable) catch |err| {
         std.debug.print("Failed to open window: {}\n", .{err});

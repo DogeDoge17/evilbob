@@ -22,8 +22,6 @@ pub fn combineColors(a: u8, r: u8, g: u8, b: u8) u32 {
 }
 
 
-
-
 pub const Camera = struct {
     position: math.Vector2(f32),
     dir: math.Vector2(f32),

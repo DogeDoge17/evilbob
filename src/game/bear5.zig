@@ -66,7 +66,7 @@ pub const Bear5 = struct {
             const f_width = @as(f32, @floatFromInt(renderer.draw.width));
             const f_height = @as(f32, @floatFromInt(renderer.draw.height));
 
-            const x = @as(usize, @intFromFloat(f_width / 2 - 50 + text_wiggle.x * 5));
+            const x = @as(usize, @intFromFloat(f_width / 2 - 90 + text_wiggle.x * 5));
             const y = @as(usize, @intFromFloat(f_height / 2 - 42 + text_wiggle.y * 5));
 
             renderer.the_font.renderString(0xFFFF0000, x, y, 32, "BEAR 5 IS COMING");

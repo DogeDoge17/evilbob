@@ -3,13 +3,14 @@ const scene = @import("../scene.zig");
 const draw = @import("../draw.zig");
 const image = @import("../image.zig");
 const audio = @import("../audio.zig");
+const math = @import("../math.zig");
 
 var scary:image.Assets = undefined;
 var timer:f32 = 0;
 var flip_timer:f32 = 0;
+var offset: math.Vector2(usize) = .{ .x = 0, .y = 0 };
 var program:draw.program = .{ .fragment = &inverse, .args = .{} };
 var le_sound: audio.Assets = .sponge_scream;
-
 
 const JumpscareTypes = enum {
     evilbob,
@@ -29,24 +30,26 @@ fn inverse (pixel: u32, args: draw.program_args) u32 {
 }
 
 pub fn init() void {
-    timer = switch(scare_man ) {
-        .evilbob => 3,
-        .bear_5 => 4.7778,
-    };
-    flip_timer = 0.08;
-    program.args.u1 = 0;
-    scary = .evilbob;
     audio.resetEngine();
 
     switch (scare_man) {
-        .evilbob => scary = .evilbob,
-        .bear_5 => scary = .bear_5_jumpscare_0,
-    }
+        .evilbob =>  {
+            scary = .evilbob; 
+            le_sound = .sponge_scream;
+            timer = 3;
+            offset = .{ .x = 0, .y = 70 };
 
-    le_sound = switch (scare_man) {
-        .evilbob => .sponge_scream,
-        .bear_5 => .bear_5_scream,
-    };
+            flip_timer = 0.08;
+            program.args.u1 = 0;
+        },
+
+        .bear_5 => { 
+            scary = .bear_5_jumpscare_0;
+            le_sound = .bear_5_scream;
+            timer = 4.7778;
+            offset = .{ .x = 0, .y = 0 };
+        }
+    }
 
     audio.Sound.play(le_sound) catch { @import("std").debug.print("pretend its screaming", .{}); };
 }
@@ -97,7 +100,7 @@ pub fn spongeUpdate() void {
 pub fn render() void {
     draw.waitForDraws();
     @memset(draw.buffer, 0xFF000000);
-    draw.queueBlitS(image.getImage(scary).?, program, .{ .x = 0, .y = 70, .height = draw.height, .width = draw.width }, null);
+    draw.queueBlitS(image.getImage(scary).?, program, .{ .x = offset.x, .y = offset.y, .height = draw.height, .width = draw.width }, null);
 }
 
 pub fn postRender() void { }

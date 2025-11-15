@@ -20,6 +20,10 @@ pub fn resetEngine() void{
     miniaudio.ma_engine_listener_set_direction(&engine, 0, 0, 0, 0);
     miniaudio.ma_engine_listener_set_position(&engine, 0, 0, 0, 0);
     miniaudio.ma_engine_listener_set_velocity(&engine, 0, 0, 0, 0);
+    for(&sounds) |*sound| {
+        _ = miniaudio.ma_sound_seek_to_pcm_frame(&sound.sound, 0);
+        _ = miniaudio.ma_sound_stop(&sound.sound);
+    }
 }
 
 pub const Assets = blk: {
