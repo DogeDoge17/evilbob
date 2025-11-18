@@ -22,7 +22,7 @@ A multithreaded 2.5D raycaster 'horror' game made in zig.
   
     
 # Building
-Ensure you have [Zig](https://ziglang.org/download/) 0.15.2 installed
+Ensure you have [Zig](https://ziglang.org/download/) 0.15.2 installed \
 Clone the repo
 ```
 git clone https://github.com/DogeDoge17/evilbob.git
@@ -30,6 +30,6 @@ cd evilbob
 ```
 Run the game
 ```
-zig build run
+zig build run -Doptimize=ReleaseFast
 ```
 
