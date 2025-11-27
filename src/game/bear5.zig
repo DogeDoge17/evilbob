@@ -73,7 +73,6 @@ pub const Bear5 = struct {
         }
 
         const new_a = @as(u8, @intFromFloat(math.perlin1D(@as(f32, @floatFromInt(time.frame)) * 0.02) * 255));
-        std.debug.print("{} {} \n", .{new_a, time.frame});
         renderer.screen_tint = renderer.combineColors(new_a, 0, 0, 0);
         renderer.draw.waitForDraws();
         renderer.tintScreen();
