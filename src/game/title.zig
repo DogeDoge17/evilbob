@@ -83,7 +83,7 @@ pub fn deinit() void {
 }
 
 pub fn update() void {
-    if(play_button.clicked()) {
+    if(play_button.clicked() or input.getKeyDown(.Enter)) {
         scene_manager.loadScene(@import("survival.zig")); 
         return;
     }
