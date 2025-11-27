@@ -241,10 +241,3 @@ pub inline fn getMouseYA(comptime T: anytype) T {
         else => @intFromFloat(my)
     });
 }
-
-pub inline fn getMouseX() f32 {
-    return activeWindow.getMouseX() + mx_offset;
-}
-pub inline fn getMouseY() f32 {
-    return activeWindow.getMouseY() + my_offset;
-}
