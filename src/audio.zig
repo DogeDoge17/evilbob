@@ -42,7 +42,9 @@ pub const Assets = blk: {
     break:blk @Type(std.builtin.Type{ .@"enum" = enumInfo });
 };
 
-pub const Sound = struct{
+const setLoop = Sound.setLoop;
+
+pub const Sound = struct {
     decoder: miniaudio.struct_ma_decoder = .{},
     sound: miniaudio.ma_sound = .{},
 
@@ -55,7 +57,7 @@ pub const Sound = struct{
         if(res != miniaudio.MA_SUCCESS) return error.play_fail;
     }
 
-    pub fn setLoop(id:Assets, looping: bool) void{
+    pub fn setLoop(id:Assets, looping: bool) void {
         miniaudio.ma_sound_set_looping(&sounds[@as(usize, @intFromEnum(id))].sound,  @as(c_uint, @intFromBool(looping))); 
     }
 
