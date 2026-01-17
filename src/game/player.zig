@@ -9,6 +9,8 @@ const std = @import("std");
 
 pub var cam: *render.Camera = undefined;
 
+var turn_mode:bool = false;
+
 fn canMoveTo(x: f32, y: f32) bool {
     const tile = render.getMapTileInfo(x, y) orelse render.tiles[0];
     return tile.t_type == .AR or !tile.solid;
@@ -40,7 +42,8 @@ pub fn move() void {
     }
 
     // strafes instaed of looking with shift (elite design)
-    if(input.getKey(.LeftShift)) {
+    if(input.getKeyDown(.LeftShift)) turn_mode = !turn_mode;
+    if(turn_mode) {
         if (input.getKey(.A)) {
             move_x -= cam.plane.x * flip;
             move_y -= cam.plane.y * flip;
@@ -71,7 +74,7 @@ pub fn move() void {
 
     // i wish i couldve used the mouse but minifb doesnt let you lock the cursor in place
     // could implement it with system calls but time
-    if ((input.getKey(.D) and !input.getKey(.LeftShift)) or input.getKey(.Right)) {
+    if ((input.getKey(.D) and !turn_mode) or input.getKey(.Right)) {
         const old_dir_x = cam.dir.x;
         cam.dir.x = cam.dir.x * @cos(-rotation_speed) - cam.dir.y * @sin(-rotation_speed);
         cam.dir.y = old_dir_x * @sin(-rotation_speed) + cam.dir.y * @cos(-rotation_speed);
@@ -79,7 +82,7 @@ pub fn move() void {
         const old_plane_x = cam.plane.x;
         cam.plane.x = cam.plane.x * @cos(-rotation_speed) - cam.plane.y * @sin(-rotation_speed);
         cam.plane.y = old_plane_x * @sin(-rotation_speed) + cam.plane.y * @cos(-rotation_speed);
-    } else if((input.getKey(.A) and !input.getKey(.LeftShift)) or input.getKey(.Left)) {
+    } else if((input.getKey(.A) and !turn_mode) or input.getKey(.Left)) {
         const old_dir_x = cam.dir.x;
         cam.dir.x = cam.dir.x * @cos(rotation_speed) - cam.dir.y * @sin(rotation_speed);
         cam.dir.y = old_dir_x * @sin(rotation_speed) + cam.dir.y * @cos(rotation_speed);
@@ -88,7 +91,7 @@ pub fn move() void {
         cam.plane.x = cam.plane.x * @cos(rotation_speed) - cam.plane.y * @sin(rotation_speed);
         cam.plane.y = old_plane_x * @sin(rotation_speed) + cam.plane.y * @cos(rotation_speed);
     }
-    // std.debug.print("Player Position: ({}, {}) Direction: ({}, {}) Plane: ({}, {}) \n", .{cam.position.x, cam.position.y, cam.dir.x, cam.dir.y, cam.plane.x, cam.plane.y});
+    std.debug.print("Player Position: ({}, {}) Direction: ({}, {}) Plane: ({}, {}) \n", .{cam.position.x, cam.position.y, cam.dir.x, cam.dir.y, cam.plane.x, cam.plane.y});
     if (cam.position.x < 0 or cam.position.y < 0 or cam.position.x >= render.mapWidth or cam.position.y >= render.mapHeight) {
         cam.position.x = render.mapWidth / 2;
         cam.position.y = render.mapHeight / 2;

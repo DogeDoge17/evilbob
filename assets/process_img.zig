@@ -21,7 +21,7 @@ pub fn main() !void {
                 const tga = try std.mem.concat(std.heap.page_allocator, u8, &.{ entry.name[0..entry.name.len - 3], "tga" });
                 defer std.heap.page_allocator.free(tga);
 
-                var mag = std.process.Child.init(&.{"magick", entry.name, "-rotate", "270", tga }, std.heap.page_allocator);
+                var mag = std.process.Child.init(&.{"magick", entry.name, "-alpha", "set", "-type", "TrueColorAlpha", "-compress", "none",  "-rotate", "270", tga }, std.heap.page_allocator);
                 _ = try mag.spawnAndWait();
                 const name = tga[0..std.mem.lastIndexOf(u8, tga, ".") orelse tga.len];
 

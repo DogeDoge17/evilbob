@@ -203,7 +203,19 @@ pub const possible_tasks = [_]TaskFrame {
         .sprite = &.{
             .pos = .{ .x = 12.4, .y = 11.7},
             .texture = .count,
-        }
+        },
+        .next = &.{
+            .name = "Store in Vault",
+            .type = TaskTypes.count_money,
+            .length = 1,
+            .finished = .none,
+            .depth = 50,
+            .sprite = &.{
+                .pos = .{ .x = 19.5, .y = 5 },
+                .texture = img.Assets.none,
+            }
+        },
+
     }
 };
 
