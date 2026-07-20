@@ -25,20 +25,24 @@
     .fingerprint = 0x76c167353643d14d, // Changing this has security and trust implications.
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
-    .minimum_zig_version = "0.15.1",
+    .minimum_zig_version = "0.16.0",
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .zig_minifb = .{
-            .url = "git+https://github.com/DogeDoge17/zig-minifb.git#f9a67d8dac10d1b3cb9f18ad2ff11e90b2bd4c06",
-            .hash = "zig_minifb-0.0.0-O0PEU9ubBgCo01ccVq5lTXAG2iEYnJqbLmvKFaZlsWUu",
-        },
+        // .zig_minifb = .{
+        //     .url = "git+https://github.com/DogeDoge17/zig-minifb.git#f9a67d8dac10d1b3cb9f18ad2ff11e90b2bd4c06",
+        //     .hash = "zig_minifb-0.0.0-O0PEU9ubBgCo01ccVq5lTXAG2iEYnJqbLmvKFaZlsWUu",
+        // },
         .miniaudio_c = .{
             .url = "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.23.tar.gz",
             .hash = "N-V-__8AAPu4vwC_P5AHlL_kEON58uGgrDcJSjGq9Hc5yadh",
+        },
+        .zig_minifb = .{
+            .url = "git+https://github.com/DogeDoge17/zig-minifb.git#2b01ee91021deb376989cb53aee42ebf91597c98",
+            .hash = "zig_minifb-0.0.0-O0PEU5OcBgBr3b2Exc3loh05Mrv_hJV69wSc6sb1e2os",
         },
     },
     .paths = .{

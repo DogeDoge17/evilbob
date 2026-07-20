@@ -1,27 +1,17 @@
 const std = @import("std");
 pub const img = @import("image.zig");
+const main = @import("main.zig");
 const math = @import("math.zig");
 
 /// Accessing the buffer is not thread safe
 pub var buffer: []u32 = &[_]u32{};
-var columnMutex: []std.Thread.Mutex = &[_]std.Thread.Mutex{};
+var columnMutex: []std.Io.Mutex = &.{};
 pub var width: usize = 0;
 pub var height: usize = 0;
 
-var threadPool: std.Thread.Pool = undefined;
-var waitGroup: std.Thread.WaitGroup = undefined;
+var workGroup: std.Io.Group = .init;
 
-pub fn initThreading() !void {
-    try std.Thread.Pool.init(&threadPool, .{
-        .allocator = std.heap.c_allocator,
-        .n_jobs = null,
-        .track_ids = true,
-        .stack_size = 2024 * 2024,
-    });
-    waitGroup.reset();
-}
-
-pub const fragment_shader = *const fn(pixel: u32, args: program_args) u32;
+pub const fragment_shader = *const fn (pixel: u32, args: program_args) u32;
 pub const program = struct {
     fragment: fragment_shader,
     args: program_args,
@@ -36,44 +26,45 @@ pub const program_args = struct {
     f3: f32 = 0,
     i1: i32 = 0,
     i2: i32 = 0,
-    i3: i32 = 0,   
+    i3: i32 = 0,
 };
 
-pub inline fn setBuffer(newBuffer: []u32, newWidth: usize, newHeight:usize) void {
+pub inline fn setBuffer(newBuffer: []u32, newWidth: usize, newHeight: usize) void {
     buffer = newBuffer;
     width = newWidth;
     height = newHeight;
-    
-    if(columnMutex.len != 0) {
+
+    if (columnMutex.len != 0) {
         std.heap.c_allocator.free(columnMutex);
     }
 
-    columnMutex = std.heap.c_allocator.alloc(std.Thread.Mutex, width) catch |err| {
+    columnMutex = std.heap.c_allocator.alloc(std.Io.Mutex, width) catch |err| {
         std.debug.panic("Failed to allocate memory {}", .{err});
     };
     for (columnMutex) |*mutex| {
-        mutex.* = std.Thread.Mutex{};
+        mutex.* = .init;
     }
 }
 
 pub inline fn queueAny(comptime func: anytype, args: anytype) void {
-    threadPool.spawnWg(&waitGroup, func, args);
+    // threadPool.spawnWg(&waitGroup, func, args);
+    workGroup.async(main.io, func, args);
 }
 
 pub inline fn queueSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
-    threadPool.spawnWg(&waitGroup, drawSolidVLine, .{color, x, y, end});
+    workGroup.async(main.io, drawSolidVLine, .{ color, x, y, end });
 }
 
 pub inline fn queueTexSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
-    threadPool.spawnWg(&waitGroup, drawTexSVLine, .{src_col, shader, x, y, destHeight, srcHeight});
+    workGroup.async(main.io, drawTexSVLine, .{ src_col, shader, x, y, destHeight, srcHeight });
 }
 
 pub inline fn queueTexBSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
-    threadPool.spawnWg(&waitGroup, drawTexBSVLine, .{src_col, shader, x, y, destHeight, srcHeight});
+    workGroup.async(main.io, drawTexBSVLine, .{ src_col, shader, x, y, destHeight, srcHeight });
 }
 
-pub inline fn queueTexBVLine(src_col: []const u32, color:u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
-    threadPool.spawnWg(&waitGroup, drawTexBVLine, .{src_col, color, x, y, destHeight, srcHeight});
+pub inline fn queueTexBVLine(src_col: []const u32, color: u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
+    workGroup.async(main.io, drawTexBVLine, .{ src_col, color, x, y, destHeight, srcHeight });
 }
 
 pub fn drawSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
@@ -81,8 +72,8 @@ pub fn drawSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
     const yEnd = @min(end, height);
     if (y >= yEnd) return;
 
-    columnMutex[x].lock();
-    defer columnMutex[x].unlock();
+    columnMutex[x].lock(main.io) catch {};
+    defer columnMutex[x].unlock(main.io);
 
     var idx = y * width + x;
     for (y..yEnd) |_| {
@@ -92,15 +83,15 @@ pub fn drawSolidVLine(color: u32, x: usize, y: usize, end: usize) void {
 }
 
 pub inline fn queueBlit(src: *const img.Image, color: u32, x: usize, y: usize, destWidth: usize, destHeight: usize) void {
-    threadPool.spawnWg(&waitGroup, _tBlit, .{src, color, x, y, destWidth, destHeight});
+    workGroup.async(main.io, _tBlit, .{ src, color, x, y, destWidth, destHeight });
 }
 
 pub inline fn queueBlitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize), src: math.Rectangle(usize)) void {
-    threadPool.spawnWg(&waitGroup, _tBlitR, .{texture, color, dest, src});
+    workGroup.async(main.io, _tBlitR, .{ texture, color, dest, src });
 }
 
 pub inline fn queueBlitS(texture: *const img.Image, shader: program, dest: math.Rectangle(usize), src: ?math.Rectangle(usize)) void {
-    threadPool.spawnWg(&waitGroup, _tBlitS, .{texture, shader, dest, src});
+    workGroup.async(main.io, _tBlitS, .{ texture, shader, dest, src });
 }
 
 pub inline fn setPixel(x: usize, y: usize, color: u32) void {
@@ -120,7 +111,7 @@ fn _tBlit(src: *const img.Image, color: u32, x: usize, y: usize, destWidth: usiz
         const row_index = sh - 1 - xu;
         const row = src.pixels[row_index * sw .. (row_index + 1) * sw];
 
-        threadPool.spawnWg(&waitGroup, drawTexBVLine,.{row, color, x + dx, y,destHeight, sw});
+        workGroup.async(main.io, drawTexBVLine, .{ row, color, x + dx, y, destHeight, sw });
     }
 }
 pub fn _tBlitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize), src: math.Rectangle(usize)) void {
@@ -129,7 +120,7 @@ pub fn _tBlitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize
     const sw = texture.width;
     const sh = texture.height;
 
-    const orig_w = sh; 
+    const orig_w = sh;
     const orig_h = sw;
 
     const src_x0 = src.x;
@@ -146,11 +137,11 @@ pub fn _tBlitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize
     const crop_h = src_y1 - src_y0;
     for (0..dest.width) |dx| {
         const u = src_x0 + (dx * crop_w) / dest.width;
-        const row_index = sh - 1 - u; 
+        const row_index = sh - 1 - u;
         const full_row = texture.pixels[row_index * sw .. (row_index + 1) * sw];
-        const row_slice = full_row[src_y0 .. src_y1];
+        const row_slice = full_row[src_y0..src_y1];
 
-        threadPool.spawnWg(&waitGroup, drawTexBVLine, .{row_slice, color, dest.x + dx, dest.y, dest.height, crop_h});
+        workGroup.async(main.io, drawTexBVLine, .{ row_slice, color, dest.x + dx, dest.y, dest.height, crop_h });
     }
 }
 
@@ -167,7 +158,7 @@ pub fn _tBlitS(texture: *const img.Image, shader: program, dest: math.Rectangle(
     const sw = texture.width;
     const sh = texture.height;
 
-    const orig_w = sh; 
+    const orig_w = sh;
     const orig_h = sw;
 
     const src_x0 = src_rect.x;
@@ -184,11 +175,11 @@ pub fn _tBlitS(texture: *const img.Image, shader: program, dest: math.Rectangle(
     const crop_h = src_y1 - src_y0;
     for (0..dest.width) |dx| {
         const u = src_x0 + (dx * crop_w) / dest.width;
-        const row_index = sh - 1 - u; 
+        const row_index = sh - 1 - u;
         const full_row = texture.pixels[row_index * sw .. (row_index + 1) * sw];
-        const row_slice = full_row[src_y0 .. src_y1];
+        const row_slice = full_row[src_y0..src_y1];
 
-        threadPool.spawnWg(&waitGroup, drawTexSVLine, .{row_slice, shader, dest.x + dx, dest.y, dest.height, crop_h});
+        workGroup.async(main.io, drawTexSVLine, .{ row_slice, shader, dest.x + dx, dest.y, dest.height, crop_h });
     }
 }
 pub fn blitS(texture: *const img.Image, shader: program, dest: math.Rectangle(usize), src: math.Rectangle(usize)) void {
@@ -197,7 +188,7 @@ pub fn blitS(texture: *const img.Image, shader: program, dest: math.Rectangle(us
     const sw = texture.width;
     const sh = texture.height;
 
-    const orig_w = sh; 
+    const orig_w = sh;
     const orig_h = sw;
 
     const src_x0 = src.x;
@@ -214,14 +205,13 @@ pub fn blitS(texture: *const img.Image, shader: program, dest: math.Rectangle(us
     const crop_h = src_y1 - src_y0;
     for (0..dest.width) |dx| {
         const u = src_x0 + (dx * crop_w) / dest.width;
-        const row_index = sh - 1 - u; 
+        const row_index = sh - 1 - u;
         const full_row = texture.pixels[row_index * sw .. (row_index + 1) * sw];
-        const row_slice = full_row[src_y0 .. src_y1];
+        const row_slice = full_row[src_y0..src_y1];
 
         drawTexSVLine(row_slice, shader, dest.x + dx, dest.y, dest.height, crop_h);
     }
 }
-
 
 /// Crops then blits an image onto the framebuffer
 pub fn blitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize), src: math.Rectangle(usize)) void {
@@ -230,7 +220,7 @@ pub fn blitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize),
     const sw = texture.width;
     const sh = texture.height;
 
-    const orig_w = sh; 
+    const orig_w = sh;
     const orig_h = sw;
 
     const src_x0 = src.x;
@@ -247,9 +237,9 @@ pub fn blitR(texture: *const img.Image, color: u32, dest: math.Rectangle(usize),
     const crop_h = src_y1 - src_y0;
     for (0..dest.width) |dx| {
         const u = src_x0 + (dx * crop_w) / dest.width;
-        const row_index = sh - 1 - u; 
+        const row_index = sh - 1 - u;
         const full_row = texture.pixels[row_index * sw .. (row_index + 1) * sw];
-        const row_slice = full_row[src_y0 .. src_y1];
+        const row_slice = full_row[src_y0..src_y1];
 
         drawTexBVLine(row_slice, color, dest.x + dx, dest.y, dest.height, crop_h);
     }
@@ -274,10 +264,10 @@ pub fn blit(src: *const img.Image, color: u32, x: usize, y: usize, destWidth: us
 /// Draws a vertical line with texture mapping and alpha blending
 pub inline fn drawTexBVLine(src_col: []const u32, color: u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     if (x >= width or y >= height or destHeight == 0 or srcHeight == 0) return;
-    columnMutex[x].lock();
-    defer columnMutex[x].unlock();
-    
-    for(0..destHeight) |dy| {
+    columnMutex[x].lock(main.io) catch {};
+    defer columnMutex[x].unlock(main.io);
+
+    for (0..destHeight) |dy| {
         const sy = (dy * srcHeight) / destHeight;
         const pixel = modulate(src_col[sy], color);
         const idx = (y + dy) * width + x;
@@ -291,10 +281,10 @@ pub inline fn drawTexBVLine(src_col: []const u32, color: u32, x: usize, y: usize
 pub inline fn drawTexCVLine(src_col: []const u32, color: u32, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     if (x >= width or y >= height or destHeight == 0 or srcHeight == 0) return;
     if (y + destHeight > height) return;
-    columnMutex[x].lock();
-    defer columnMutex[x].unlock();
+    columnMutex[x].lock(main.io) catch {};
+    defer columnMutex[x].unlock(main.io);
 
-    for(0..destHeight) |dy| {
+    for (0..destHeight) |dy| {
         const sy = (dy * srcHeight) / destHeight;
         const pixel = src_col[sy];
         const idx = (y + dy) * width + x;
@@ -306,10 +296,10 @@ pub inline fn drawTexCVLine(src_col: []const u32, color: u32, x: usize, y: usize
 /// Draws a vertical line with texture mapping and a fragment shader
 pub inline fn drawTexSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     if (x >= width or y >= height or destHeight == 0 or srcHeight == 0 or src_col.len == 0) return;
-    columnMutex[x].lock();
-    defer columnMutex[x].unlock();
+    columnMutex[x].lock(main.io) catch {};
+    defer columnMutex[x].unlock(main.io);
 
-    for(0..destHeight) |dy| {
+    for (0..destHeight) |dy| {
         const sy = (dy * srcHeight) / destHeight;
         const pixel = src_col[sy];
         const idx = (y + dy) * width + x;
@@ -322,10 +312,10 @@ pub inline fn drawTexSVLine(src_col: []const u32, shader: program, x: usize, y: 
 /// Draws a vertical line with texture mapping and a fragment shader
 pub inline fn drawTexBSVLine(src_col: []const u32, shader: program, x: usize, y: usize, destHeight: usize, srcHeight: usize) void {
     if (x >= width or y >= height or destHeight == 0 or srcHeight == 0 or src_col.len == 0) return;
-    columnMutex[x].lock();
-    defer columnMutex[x].unlock();
+    columnMutex[x].lock(main.io) catch {};
+    defer columnMutex[x].unlock(main.io);
 
-    for(0..destHeight) |dy| {
+    for (0..destHeight) |dy| {
         const sy = (dy * srcHeight) / destHeight;
         const pixel = src_col[sy];
         const idx = (y + dy) * width + x;
@@ -342,11 +332,11 @@ inline fn blendOver(dst: u32, src: u32) u32 {
     if (sa == 255) return src;
 
     const sr: u32 = (src >> 16) & 0xff;
-    const sg: u32 = (src >>  8) & 0xff;
-    const sb: u32 =  src & 0xff;
+    const sg: u32 = (src >> 8) & 0xff;
+    const sb: u32 = src & 0xff;
 
     const dr: u32 = (dst >> 16) & 0xff;
-    const dg: u32 = (dst >>  8) & 0xff;
+    const dg: u32 = (dst >> 8) & 0xff;
     const db: u32 = dst & 0xff;
     const da: u32 = dst >> 24;
 
@@ -380,6 +370,6 @@ inline fn modulate(src: u32, tint: u32) u32 {
 }
 // probably could be done better with rangees on the x or somthing but idk
 pub inline fn waitForDraws() void {
-    waitGroup.wait();
-    waitGroup.reset();
+    workGroup.await(main.io) catch {};
+    workGroup.cancel(main.io);
 }

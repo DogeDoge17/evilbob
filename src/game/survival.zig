@@ -1,23 +1,24 @@
 const std = @import("std");
-const jumpscare = @import("jumpscare.zig");
 const renderer = @import("../render.zig");
 const time = @import("../time.zig");
-const draw = @import("../draw.zig"); 
+const draw = @import("../draw.zig");
 const spr = @import("../sprite.zig");
 const img = @import("../image.zig");
+const input = @import("../input.zig");
+const audio = @import("../audio.zig");
+const main = @import("../main.zig");
+const jumpscare = @import("jumpscare.zig");
 const evil = @import("evil.zig");
 const player = @import("player.zig");
 const task = @import("task.zig");
-const input = @import("../input.zig");
-const audio = @import("../audio.zig");
 const bear5 = @import("bear5.zig");
 
 var camera: renderer.Camera = undefined;
-var bop:evil.Evil = undefined;
+var bop: evil.Evil = undefined;
 var bear: bear5.Bear5 = undefined;
 var evilBoob: img.Assets = .evilbob;
 
-var check_list:task.CheckList = .{};
+var check_list: task.CheckList = .{};
 
 var misc_sprites: [3]*spr.Sprite = undefined;
 
@@ -27,7 +28,7 @@ var skybox: *img.Image = undefined;
 const black_img: img.Image = img.Image{
     .width = 1,
     .height = 1,
-    .pixels = &.{ 0xFF000000 },
+    .pixels = &.{0xFF000000},
 };
 var win_opacity: f32 = 0;
 
@@ -35,12 +36,11 @@ var paused: bool = false;
 var won: bool = false;
 var did_bear_roll: bool = false;
 
+var prng: std.Random.DefaultPrng = undefined;
+pub var random: std.Random = undefined;
+
 pub fn init() !void {
-    camera = .{
-        .dir = .{ .x = 0.001, .y = -1.001 },
-        .plane = .{ .x = -1.001, .y = 0.001 },
-        .position = .{ .x = 13, .y = 31 }
-    };
+    camera = .{ .dir = .{ .x = 0.001, .y = -1.001 }, .plane = .{ .x = -1.001, .y = 0.001 }, .position = .{ .x = 13, .y = 31 } };
     skybox = img.image_cache.items[@as(usize, @intFromEnum(img.Assets.skybox))];
 
     renderer.cam = &camera;
@@ -52,9 +52,21 @@ pub fn init() !void {
     win_opacity = 0;
     renderer.screen_tint = 0x00000000;
 
+    var seed: u64 = undefined;
+    main.io.random(std.mem.asBytes(&seed));
+    prng = std.Random.DefaultPrng.init(seed);
+    random = prng.random();
+
     bop = evil.Evil.init(renderer.curr_sprites, .{ .x = 0.5, .y = 0.5 }, 1.7, evilBoob);
-    bop.sound_pool = &.{ .sponge_walk, .im_evil_fella, .im_evil_spongebob, };
-    bop.idle_sounds = &.{ .im_evil_fella, .im_evil_spongebob, };
+    bop.sound_pool = &.{
+        .sponge_walk,
+        .im_evil_fella,
+        .im_evil_spongebob,
+    };
+    bop.idle_sounds = &.{
+        .im_evil_fella,
+        .im_evil_spongebob,
+    };
     bop.setTarget(&player.cam.position);
     renderer.curr_sprites.add(&bop.sprite) catch |err| {
         std.debug.panic("Failed to add evil sprite {}", .{err});
@@ -77,7 +89,7 @@ pub fn init() !void {
 }
 
 pub fn deinit() void {
-    check_list.clockOut();        
+    check_list.clockOut();
     renderer.curr_sprites.reset();
     bop.kill();
     bear.deinit();
@@ -87,9 +99,9 @@ pub fn deinit() void {
 }
 
 pub fn update() void {
-    if(input.getKeyDown(.Escape)) {
+    if (input.getKeyDown(.Escape)) {
         paused = !paused;
-        if(paused) {
+        if (paused) {
             time.gameSpeed = 0;
             _ = audio.miniaudio.ma_engine_stop(&audio.engine);
         } else {
@@ -100,71 +112,66 @@ pub fn update() void {
 
     if (won) {
         win_opacity = win_opacity + 255 * time.gameTime;
-            
-        if(win_opacity > 255) {
+
+        if (win_opacity > 255) {
             @import("../scene.zig").loadScene(@import("win.zig"));
         }
         return;
     }
 
-    if(input.getKeyDown(.Tab)) {
+    if (input.getKeyDown(.Tab)) {
         check_list.visible = !check_list.visible;
     }
 
     player.update();
     player.checkTasks(&check_list);
-    if(check_list.checkList()) {
+    if (check_list.checkList()) {
         won = player.cam.position.distance(.{ .x = 13, .y = 31 }) < 1;
-        if(!did_bear_roll) {
-            var prng = std.Random.DefaultPrng.init(blk: {
-                var seed: u64 = undefined;
-                std.posix.getrandom(std.mem.asBytes(&seed)) catch { seed = 10; } ;
-                break :blk seed;
-            });
-            const roll = prng.random().intRangeAtMost(usize, 0, 3);
-            if(roll == 2) {
+        if (!did_bear_roll) {
+            const roll = random.intRangeAtMost(u8, 0, 3);
+
+            if (roll == 2) {
                 bear.deploy(&player.cam.position);
             }
 
             did_bear_roll = true;
         }
     }
-    
+
     bop.update();
     if (bop.checkKill()) {
         jumpscare.scare_man = .evilbob;
-        @import("../scene.zig").loadScene(jumpscare); 
-        return; 
+        @import("../scene.zig").loadScene(jumpscare);
+        return;
     }
 
     bear.update();
-    if (bear.ai.checkKill()) { 
+    if (bear.ai.checkKill()) {
         jumpscare.scare_man = .bear_5;
         @import("../scene.zig").loadScene(jumpscare);
-        return; 
+        return;
     }
 }
 
 pub fn render() void {
-    if(won) {
+    if (won) {
         draw.waitForDraws();
-        draw.blit(&black_img, renderer.combineColors(@as(u8, @intFromFloat(win_opacity)), 0,0,0), 0, 0, draw.width, draw.height); 
+        draw.blit(&black_img, renderer.combineColors(@as(u8, @intFromFloat(win_opacity)), 0, 0, 0), 0, 0, draw.width, draw.height);
         return;
     }
 
     draw.waitForDraws();
     @memcpy(draw.buffer, skybox.pixels);
-    renderer.render(); 
+    renderer.render();
 }
-
 
 pub fn postRender() void {
     player.postRender();
     check_list.drawList();
     bear.postRender();
-    if(paused) {
+    if (paused) {
         draw.waitForDraws();
-        draw.blit(&black_img, renderer.combineColors(200, 0,0,0), 0, 0, draw.width, draw.height); 
+        draw.blit(&black_img, renderer.combineColors(200, 0, 0, 0), 0, 0, draw.width, draw.height);
         draw.waitForDraws();
         renderer.the_font.renderString(0xFFFFFFFF, draw.width / 2 - 62, draw.height / 2 - 12, 24, "PAUSED");
     }

@@ -9,7 +9,7 @@ const std = @import("std");
 
 pub var cam: *render.Camera = undefined;
 
-var turn_mode:bool = false;
+var turn_mode: bool = false;
 
 fn canMoveTo(x: f32, y: f32) bool {
     const tile = render.getMapTileInfo(x, y) orelse render.tiles[0];
@@ -24,9 +24,9 @@ pub fn move() void {
     var move_y: f32 = 0;
 
     const behind = input.getKey(.Space);
-    const flip:f32 = if(behind) -1 else 1;
+    const flip: f32 = if (behind) -1 else 1;
 
-    if(input.getKeyDown(.Space) or input.getKeyUp(.Space)) {
+    if (input.getKeyDown(.Space) or input.getKeyUp(.Space)) {
         cam.dir.x *= -1;
         cam.dir.y *= -1;
         cam.plane.x *= -1;
@@ -35,20 +35,19 @@ pub fn move() void {
 
     if (input.getKey(.W)) {
         move_x += cam.dir.x * flip;
-        move_y += cam.dir.y * flip; 
+        move_y += cam.dir.y * flip;
     } else if (input.getKey(.S)) {
         move_x -= cam.dir.x * flip;
         move_y -= cam.dir.y * flip;
     }
 
     // strafes instaed of looking with shift (elite design)
-    if(input.getKeyDown(.LeftShift)) turn_mode = !turn_mode;
-    if(turn_mode) {
+    if (input.getKeyDown(.LeftShift)) turn_mode = !turn_mode;
+    if (turn_mode) {
         if (input.getKey(.A)) {
             move_x -= cam.plane.x * flip;
             move_y -= cam.plane.y * flip;
-        }
-        else if (input.getKey(.D)) {
+        } else if (input.getKey(.D)) {
             move_x += cam.plane.x * flip;
             move_y += cam.plane.y * flip;
         }
@@ -67,10 +66,10 @@ pub fn move() void {
         cam.position.x = if (can_x) potential_x else cam.position.x;
         cam.position.y = if (can_y) potential_y else cam.position.y;
 
-        audio.miniaudio.ma_engine_listener_set_velocity( &audio.engine, 0,
-            if(can_x) norm_x * move_speed else 0, 0,
-            if(can_y) norm_y * move_speed else 0);
-    } else { audio.miniaudio.ma_engine_listener_set_velocity( &audio.engine, 0, 0, 0, 0); } 
+        audio.miniaudio.ma_engine_listener_set_velocity(&audio.engine, 0, if (can_x) norm_x * move_speed else 0, 0, if (can_y) norm_y * move_speed else 0);
+    } else {
+        audio.miniaudio.ma_engine_listener_set_velocity(&audio.engine, 0, 0, 0, 0);
+    }
 
     // i wish i couldve used the mouse but minifb doesnt let you lock the cursor in place
     // could implement it with system calls but time
@@ -82,7 +81,7 @@ pub fn move() void {
         const old_plane_x = cam.plane.x;
         cam.plane.x = cam.plane.x * @cos(-rotation_speed) - cam.plane.y * @sin(-rotation_speed);
         cam.plane.y = old_plane_x * @sin(-rotation_speed) + cam.plane.y * @cos(-rotation_speed);
-    } else if((input.getKey(.A) and !turn_mode) or input.getKey(.Left)) {
+    } else if ((input.getKey(.A) and !turn_mode) or input.getKey(.Left)) {
         const old_dir_x = cam.dir.x;
         cam.dir.x = cam.dir.x * @cos(rotation_speed) - cam.dir.y * @sin(rotation_speed);
         cam.dir.y = old_dir_x * @sin(rotation_speed) + cam.dir.y * @cos(rotation_speed);
@@ -91,7 +90,7 @@ pub fn move() void {
         cam.plane.x = cam.plane.x * @cos(rotation_speed) - cam.plane.y * @sin(rotation_speed);
         cam.plane.y = old_plane_x * @sin(rotation_speed) + cam.plane.y * @cos(rotation_speed);
     }
-    std.debug.print("Player Position: ({}, {}) Direction: ({}, {}) Plane: ({}, {}) \n", .{cam.position.x, cam.position.y, cam.dir.x, cam.dir.y, cam.plane.x, cam.plane.y});
+    // std.debug.print("Player Position: ({}, {}) Direction: ({}, {}) Plane: ({}, {}) \n", .{cam.position.x, cam.position.y, cam.dir.x, cam.dir.y, cam.plane.x, cam.plane.y});
     if (cam.position.x < 0 or cam.position.y < 0 or cam.position.x >= render.mapWidth or cam.position.y >= render.mapHeight) {
         cam.position.x = render.mapWidth / 2;
         cam.position.y = render.mapHeight / 2;
@@ -101,8 +100,7 @@ pub fn move() void {
     audio.miniaudio.ma_engine_listener_set_position(&audio.engine, 0, cam.position.x, 0, cam.position.y);
 }
 
-pub fn init() void {
-}
+pub fn init() void {}
 
 pub fn update() void {
     move();
@@ -116,7 +114,7 @@ pub fn checkTasks(check_list: *const task.CheckList) void {
     var curr_task = check_list.head;
 
     while (curr_task) |t| {
-        const dist = cam.position.distance((t.task.sprite orelse continue).pos );
+        const dist = cam.position.distance((t.task.sprite orelse continue).pos);
         if (dist < max_distance and dist < closest_distance and !t.task.completed) {
             closest_task = t.task;
             closest_distance = dist;
@@ -132,7 +130,6 @@ pub fn checkTasks(check_list: *const task.CheckList) void {
         }
     }
 }
-
 
 var closest_task: ?*task.Task = null;
 pub fn postRender() void {

@@ -1,23 +1,26 @@
 const std = @import("std");
 
 fn addAssets(b: *std.Build, exe: *std.Build.Step.Compile) !void {
-    var dir = try std.fs.cwd().openDir("assets",.{ .iterate = true }); 
+    const io = b.graph.io;
+
+    const dir = try std.Io.Dir.cwd().openDir(io, "assets", .{
+        .iterate = true,
+    });
     var assets = try std.ArrayList(struct { []const u8, []const u8 }).initCapacity(b.allocator, 16);
     defer assets.deinit(b.allocator);
     var walker = dir.iterate();
 
-    while (try walker.next()) |entry| {
+    while (try walker.next(io)) |entry| {
         if (entry.kind != .file) continue;
-        if (std.mem.endsWith(u8, entry.name, ".png")) continue; 
-
+        if (std.mem.endsWith(u8, entry.name, ".png")) continue;
 
         const file_name = entry.name;
         const path = try std.fmt.allocPrint(b.allocator, "assets/{s}", .{file_name});
 
         const name = blk: {
             if (std.mem.endsWith(u8, entry.name, ".fntdat"))
-            break :blk path["assets/".len..];
-            break :blk path["assets/".len..std.mem.lastIndexOf(u8, path, ".") orelse file_name.len];
+                break :blk path["assets/".len..];
+            break :blk path["assets/".len .. std.mem.lastIndexOf(u8, path, ".") orelse file_name.len];
         };
         try assets.append(b.allocator, .{ path, name });
     }
@@ -60,21 +63,21 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
-    miniaudio_lib.addCSourceFile(.{ .file = miniaudio_dep.path("miniaudio.c"), .flags = &.{"-fno-sanitize=undefined"} });
+    miniaudio_lib.root_module.addCSourceFile(.{ .file = miniaudio_dep.path("miniaudio.c"), .flags = &.{"-fno-sanitize=undefined"} });
     const miniaudio_translated = b.addTranslateC(.{
         .root_source_file = miniaudio_dep.path("miniaudio.h"),
         .target = target,
         .optimize = optimize,
     });
 
-    const minifb_dep = b.dependency("zig_minifb", .{.target = target, .optimize = optimize });
+    const minifb_dep = b.dependency("zig_minifb", .{ .target = target, .optimize = optimize });
     const minifb = minifb_dep.module("minifb");
     exe.root_module.addImport("minifb", minifb);
     exe.root_module.addImport("miniaudio_c", miniaudio_translated.createModule());
     exe.root_module.addIncludePath(b.path("src"));
     exe.root_module.addEmbedPath(b.path("assets"));
-    exe.linkLibrary(miniaudio_lib);
-    
+    exe.root_module.linkLibrary(miniaudio_lib);
+
     addAssets(b, exe) catch |err| {
         std.debug.panic("Failed to add assets: {}\n", .{err});
     };

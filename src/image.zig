@@ -1,5 +1,6 @@
 const std = @import("std");
 const draw = @import("draw.zig");
+const main = @import("main.zig");
 // const image_uris = [_][:0]const u8{
 //     "evilbob",
 //     "door",
@@ -81,43 +82,39 @@ pub const Image = struct {
 };
 
 pub const Assets = blk: {
-    var fields: [image_uris.len]std.builtin.Type.EnumField = undefined;
+    const names = image_uris;
 
-    for (image_uris, 0..) |name, i| {
-        fields[i] = .{ .name = name, .value = i };
+    var values: [names.len]usize = undefined;
+    for (0..names.len) |i| {
+        values[i] = i;
     }
 
-    const enumInfo = std.builtin.Type.Enum{
-        .tag_type = usize,
-        .fields = &fields,
-        .decls = &[0]std.builtin.Type.Declaration{},
-        .is_exhaustive = false,
-    };
-    break:blk @Type(std.builtin.Type{ .@"enum" = enumInfo });
+    break :blk @Enum(
+        usize,
+        .nonexhaustive,
+        &names,
+        &values,
+    );
 };
 
 pub fn init() !void {
-    fba = std.heap.FixedBufferAllocator.init(image_ptr_space[0..]); 
+    fba = std.heap.FixedBufferAllocator.init(image_ptr_space[0..]);
     image_cache = try std.ArrayList(*Image).initCapacity(std.heap.page_allocator, @typeInfo(Assets).@"enum".fields.len + 10);
 
-    inline for(0..image_uris.len) |i| {
-        draw.queueAny(preloadImage, .{std.heap.page_allocator, image_uris[i], i});
+    inline for (0..image_uris.len) |i| {
+        const image_data = @embedFile(image_uris[i]);
+        draw.queueAny(preloadImage, .{ std.heap.page_allocator, image_data, i });
+        // draw.queueAny(preloadImage, .{ std.heap.page_allocator, image_uris[i], i });
     }
     draw.waitForDraws();
 }
 
-inline fn preloadImage(alloc: std.mem.Allocator, comptime path: []const u8, id: usize) void {
-    _ = loadImageFull(alloc, @embedFile(path), id) catch |err| {
-        std.debug.panic("Couldnt preload {}", .{err});
-    };
-}
-
 pub fn getImage(image_id: anytype) ?*Image {
-    const idx = @as(usize, switch(@typeInfo(@TypeOf(image_id))) {
+    const idx = @as(usize, switch (@typeInfo(@TypeOf(image_id))) {
         .float => @intFromFloat(image_id),
-        .int =>  @intCast(image_id),
+        .int => @intCast(image_id),
         .@"enum" => @intFromEnum(image_id),
-        else => return null
+        else => return null,
     });
 
     if (idx >= image_cache.items.len) {
@@ -126,21 +123,21 @@ pub fn getImage(image_id: anytype) ?*Image {
     return image_cache.items[idx];
 }
 
-pub fn getDimensions(image_id: anytype) ? struct {width: usize, height: usize} {
+pub fn getDimensions(image_id: anytype) ?struct { width: usize, height: usize } {
     const img = getImage(image_id) orelse return null;
     return .{ .width = img.width, .height = img.height };
 }
 
-pub var image_cache:std.ArrayList(*Image) = undefined;
-var image_cache_mutex:std.Thread.Mutex = .{};
-var image_ptr_space: [ @typeInfo(Assets).@"enum".fields.len * @sizeOf(Image) * 2]u8 = undefined;
-var fba:std.heap.FixedBufferAllocator = undefined;
-pub inline fn loadImage(alloc: std.mem.Allocator, comptime path: []const u8) !usize { 
+pub var image_cache: std.ArrayList(*Image) = undefined;
+var image_cache_mutex: std.Io.Mutex = .init;
+var image_ptr_space: [@typeInfo(Assets).@"enum".fields.len * @sizeOf(Image) * 2]u8 = undefined;
+var fba: std.heap.FixedBufferAllocator = undefined;
+pub inline fn loadImage(alloc: std.mem.Allocator, comptime path: []const u8) !usize {
     return loadImageFull(alloc, std.fmt.comptimePrint("assets/{s}.tga", .{path}));
 }
 
-pub fn loadImageFile(alloc: std.mem.Allocator, path: []const u8,id: Assets) !usize {
-     std.debug.print("path: {s}\n", .{path});
+pub fn loadImageFile(alloc: std.mem.Allocator, path: []const u8, id: Assets) !usize {
+    std.debug.print("path: {s}\n", .{path});
     if (image_cache.get(path)) |img| {
         return img;
     }
@@ -148,16 +145,27 @@ pub fn loadImageFile(alloc: std.mem.Allocator, path: []const u8,id: Assets) !usi
     const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
 
-    const imagedata = try file.readToEndAlloc(alloc, 10 * 4024 * 4024); 
+    const imagedata = try file.readToEndAlloc(alloc, 10 * 4024 * 4024);
     defer alloc.free(imagedata);
-    
+
     return loadImageFile(alloc, imagedata, id);
 }
 
-pub fn loadImageFull(alloc: std.mem.Allocator, image_data: []const u8, id: ?usize) !usize{
+fn preloadImage(
+    alloc: std.mem.Allocator,
+    image_data: []const u8,
+    id: usize,
+) std.Io.Cancelable!void {
+    _ = loadImageFull(alloc, image_data, id) catch |err| switch (err) {
+        error.Canceled => return error.Canceled,
+        else => std.debug.panic("Couldn't preload {}", .{err}),
+    };
+}
+
+pub fn loadImageFull(alloc: std.mem.Allocator, image_data: []const u8, id: ?usize) !usize {
     if (image_data[2] != 2) return error.invalidformat;
 
-    const width  = @as(u16, image_data[12]) | (@as(u16, image_data[13]) << 8);
+    const width = @as(u16, image_data[12]) | (@as(u16, image_data[13]) << 8);
     const height = @as(u16, image_data[14]) | (@as(u16, image_data[15]) << 8);
     const pixel_depth: u8 = image_data[16];
     const bpp: usize = pixel_depth / 8;
@@ -179,28 +187,22 @@ pub fn loadImageFull(alloc: std.mem.Allocator, image_data: []const u8, id: ?usiz
     var pixels = try alloc.alloc(u32, @as(usize, width) * @as(usize, height));
 
     var si: usize = 0;
-    for(0..height) |y| {
+    for (0..height) |y| {
         const dy = if (top_origin) y else (height - 1 - y);
-        for(0..width) |x| {
+        for (0..width) |x| {
             if (bpp == 4) {
-                const bgra = std.mem.readInt(u32, pixel_data[si ..][0..4], .little);
-                const b =  bgra        & 0xff;
-                const g = (bgra >> 8)  & 0xff;
+                const bgra = std.mem.readInt(u32, pixel_data[si..][0..4], .little);
+                const b = bgra & 0xff;
+                const g = (bgra >> 8) & 0xff;
                 const r = (bgra >> 16) & 0xff;
                 const a = (bgra >> 24) & 0xff;
-                pixels[dy * width + x] = (@as(u32, a) << 24)
-                    | (@as(u32, r) << 16)
-                    | (@as(u32, g) << 8)
-                    |  @as(u32, b);
+                pixels[dy * width + x] = (@as(u32, a) << 24) | (@as(u32, r) << 16) | (@as(u32, g) << 8) | @as(u32, b);
                 si += 4;
             } else if (bpp == 3) {
                 const b = pixel_data[si + 0];
                 const g = pixel_data[si + 1];
                 const r = pixel_data[si + 2];
-                pixels[dy * width + x] = 0xff00_0000
-                    | (@as(u32, r) << 16)
-                    | (@as(u32, g) << 8)
-                    |  @as(u32, b);
+                pixels[dy * width + x] = 0xff00_0000 | (@as(u32, r) << 16) | (@as(u32, g) << 8) | @as(u32, b);
                 si += 3;
             } else {
                 return error.unsupportedpixeldepth;
@@ -219,8 +221,8 @@ pub fn loadImageFull(alloc: std.mem.Allocator, image_data: []const u8, id: ?usiz
         .pixels = pixels,
     };
 
-    image_cache_mutex.lock();
-    defer image_cache_mutex.unlock();
+    try image_cache_mutex.lock(main.io);
+    defer image_cache_mutex.unlock(main.io);
 
     if (id) |the_id| {
         image_cache.resize(alloc, the_id + 1) catch |err| {
@@ -245,6 +247,5 @@ pub fn loadImageFull(alloc: std.mem.Allocator, image_data: []const u8, id: ?usiz
         return err;
     };
 
-    return image_cache.items.len - 1; 
+    return image_cache.items.len - 1;
 }
-

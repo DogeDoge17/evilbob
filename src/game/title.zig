@@ -4,11 +4,12 @@ const ui = @import("ui.zig");
 const std = @import("std");
 const scene_manager = @import("../scene.zig");
 const input = @import("../input.zig");
+const main = @import("../main.zig");
 
 var play_button: ui.Element = undefined;
 var spong: ui.Element = undefined;
 
-const first_names = [_][]const u8 {
+const first_names = [_][]const u8{
     "Sponge",
     "Spingle",
     "Spinge",
@@ -27,10 +28,10 @@ const first_names = [_][]const u8 {
     "Blip",
     "Bloop",
     "Goy",
-    "Poop"
+    "Poop",
 };
 
-const last_names = [_][]const u8 {
+const last_names = [_][]const u8{
     "bob",
     "bop",
     "plop",
@@ -49,10 +50,9 @@ const last_names = [_][]const u8 {
     "tingle",
     "bunk",
     "toop",
-
 };
-var first_name:usize = 0;
-var last_name:usize = 0;
+var first_name: usize = 0;
+var last_name: usize = 0;
 
 pub fn init() !void {
     play_button = .{
@@ -69,22 +69,18 @@ pub fn init() !void {
         .width = 650,
     };
 
-    var prng = std.Random.DefaultPrng.init(blk: {
-        var seed: u64 = undefined;
-        try std.posix.getrandom(std.mem.asBytes(&seed));
-        break :blk seed;
-    });
-    first_name = std.Random.intRangeAtMost(prng.random(), usize, 0, first_names.len - 1);
-    last_name = std.Random.intRangeAtMost(prng.random(), usize, 0, last_names.len - 1);
+    const rng_impl: std.Random.IoSource = .{ .io = main.io };
+    const rng = rng_impl.interface();
+
+    first_name = rng.intRangeAtMost(usize, 0, first_names.len - 1);
+    last_name = rng.intRangeAtMost(usize, 0, last_names.len - 1);
 }
 
-pub fn deinit() void {
-
-}
+pub fn deinit() void {}
 
 pub fn update() void {
-    if(play_button.clicked() or input.getKeyUp(.Enter)) {
-        scene_manager.loadScene(@import("survival.zig")); 
+    if (play_button.clicked() or input.getKeyUp(.Enter)) {
+        scene_manager.loadScene(@import("survival.zig"));
         return;
     }
 }
@@ -99,8 +95,9 @@ pub fn render() void {
     defer renderer.the_font.line_seperation = tempSep;
     renderer.the_font.line_seperation *= 1.8;
 
-    renderer.the_font.renderStringF(renderer.argb(255, 255, 255, 255), 10, 40, 48, "Survival the\n{s}{s}\nthe killer", .{first_names[first_name], last_names[last_name]}) catch |err| { std.debug.panic("{}", .{err}); };
+    renderer.the_font.renderStringF(renderer.argb(255, 255, 255, 255), 10, 40, 48, "Survival the\n{s}{s}\nthe killer", .{ first_names[first_name], last_names[last_name] }) catch |err| {
+        std.debug.panic("{}", .{err});
+    };
 }
 
-pub fn postRender() void {
-}
+pub fn postRender() void {}

@@ -3,19 +3,20 @@ const spr = @import("../sprite.zig");
 const time = @import("../time.zig");
 const img = @import("../image.zig");
 const audio = @import("../audio.zig");
+const main = @import("../main.zig");
 const std = @import("std");
 
 pub const Evil = struct {
     speed: f32 = 0.75,
     targt: ?*math.Vector2(f32) = null,
-    sprite: spr.Sprite = .{ .pos = .{.x = 22, .y = 0 }, .texture = undefined },
+    sprite: spr.Sprite = .{ .pos = .{ .x = 22, .y = 0 }, .texture = undefined },
     container: *spr.SpriteContainer = undefined,
-    talk_timer:f32 = 4,
+    talk_timer: f32 = 4,
     talk_rnd: std.Random.DefaultPrng = undefined,
     sound_pool: []const audio.Assets = &.{},
     idle_sounds: []const audio.Assets = &.{},
-    
-    pub fn init(containter: *spr.SpriteContainer, position: math.Vector2(f32), speed: f32, texture:img.Assets) @This() {
+
+    pub fn init(containter: *spr.SpriteContainer, position: math.Vector2(f32), speed: f32, texture: img.Assets) @This() {
         return .{
             .sprite = .{ .pos = position, .texture = texture },
             .speed = speed,
@@ -23,15 +24,15 @@ pub const Evil = struct {
             .container = containter,
             .talk_rnd = std.Random.DefaultPrng.init(blk: {
                 var seed: u64 = undefined;
-                std.posix.getrandom(std.mem.asBytes(&seed)) catch { seed = 10; } ;
+                main.io.random(std.mem.asBytes(&seed));
                 break :blk seed;
             }),
         };
     }
-    
+
     pub fn setTarget(self: *@This(), target: *math.Vector2(f32)) void {
         self.targt = target;
-        if(self.sound_pool.len == 0) return;
+        if (self.sound_pool.len == 0) return;
         audio.Sound.play(self.sound_pool[0]) catch {};
         audio.Sound.setLoop(self.sound_pool[0], true);
     }
@@ -44,9 +45,9 @@ pub const Evil = struct {
     }
 
     pub fn moveSound(self: *@This()) void {
-        for(self.sound_pool) |sound| {
+        for (self.sound_pool) |sound| {
             audio.Sound.setPosition(sound, self.sprite.pos);
-        } 
+        }
     }
 
     pub fn update(self: *@This()) void {
@@ -61,10 +62,10 @@ pub const Evil = struct {
             self.talk_timer = 8;
         }
     }
-    
+
     pub fn kill(self: *@This()) void {
         self.container.remove(&self.sprite);
-        for(self.sound_pool) |sound| {
+        for (self.sound_pool) |sound| {
             audio.Sound.stop(sound);
         }
     }

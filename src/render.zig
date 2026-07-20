@@ -11,7 +11,7 @@ pub fn extractColors(color: u32) [4]u8 {
     const r = @as(u8, @intCast((color >> 16) & 0xFF));
     const g = @as(u8, @intCast((color >> 8) & 0xFF));
     const b = @as(u8, @intCast(color & 0xFF));
-    return .{a, r, g, b};
+    return .{ a, r, g, b };
 }
 
 pub fn combineColors(a: u8, r: u8, g: u8, b: u8) u32 {
@@ -20,7 +20,6 @@ pub fn combineColors(a: u8, r: u8, g: u8, b: u8) u32 {
         | (@as(u32, g) << 8)
         |  @as(u32, b);
 }
-
 
 pub const Camera = struct {
     position: math.Vector2(f32),
@@ -61,7 +60,7 @@ pub const TileInfo = struct {
     texture: ?img.Assets,
     solid: bool = true,
     directional: bool = false,
-    translucent:bool = false,
+    translucent: bool = false,
     n_texture: ?img.Assets = null,
     s_texture: ?img.Assets = null,
     e_texture: ?img.Assets = null,
@@ -275,15 +274,15 @@ pub inline fn getMapTileSafe(x: anytype, y: anytype) ?u32 {
     if (x >= sameWidth or x < 0 or y >= sameHeight or y < 0)
         return null;
 
-    const ux = @as(usize, switch(@typeInfo(@TypeOf(x))) {
+    const ux = @as(usize, switch (@typeInfo(@TypeOf(x))) {
         .float => @intFromFloat(x),
-        .int =>  @intCast(x),
-        else => return null
+        .int => @intCast(x),
+        else => return null,
     });
-    const uy = @as(usize, switch(@typeInfo(@TypeOf(y))) {
+    const uy = @as(usize, switch (@typeInfo(@TypeOf(y))) {
         .float => @intFromFloat(y),
-        .int =>  @intCast(y),
-        else => return null
+        .int => @intCast(y),
+        else => return null,
     });
 
     return @intFromEnum(worldMap[uy][ux]);
@@ -296,15 +295,15 @@ pub inline fn getFloorTileSafe(x: anytype, y: anytype) ?u32 {
     if (x >= sameWidth or x < 0 or y >= sameHeight or y < 0)
         return null;
 
-    const ux = @as(usize, switch(@typeInfo(@TypeOf(x))) {
+    const ux = @as(usize, switch (@typeInfo(@TypeOf(x))) {
         .float => @intFromFloat(x),
-        .int =>  @intCast(x),
-        else => return null
+        .int => @intCast(x),
+        else => return null,
     });
-    const uy = @as(usize, switch(@typeInfo(@TypeOf(y))) {
+    const uy = @as(usize, switch (@typeInfo(@TypeOf(y))) {
         .float => @intFromFloat(y),
-        .int =>  @intCast(y),
-        else => return null
+        .int => @intCast(y),
+        else => return null,
     });
 
     return @intFromEnum(floorMap[uy][ux]);
@@ -317,15 +316,15 @@ pub inline fn getCeilingTileSafe(x: anytype, y: anytype) ?u32 {
     if (x >= sameWidth or x < 0 or y >= sameHeight or y < 0)
         return null;
 
-    const ux = @as(usize, switch(@typeInfo(@TypeOf(x))) {
+    const ux = @as(usize, switch (@typeInfo(@TypeOf(x))) {
         .float => @intFromFloat(x),
-        .int =>  @intCast(x),
-        else => return null
+        .int => @intCast(x),
+        else => return null,
     });
-    const uy = @as(usize, switch(@typeInfo(@TypeOf(y))) {
+    const uy = @as(usize, switch (@typeInfo(@TypeOf(y))) {
         .float => @intFromFloat(y),
-        .int =>  @intCast(y),
-        else => return null
+        .int => @intCast(y),
+        else => return null,
     });
 
     return @intFromEnum(ceilingMap[uy][ux]);
@@ -353,8 +352,8 @@ pub inline fn getMapTile(x: usize, y: usize) u32 {
     return worldMap[y][x];
 }
 
-var h:f32 = 600;
-var w:f32 = 800;
+var h: f32 = 600;
+var w: f32 = 800;
 pub fn render() void {
     h = @as(f32, @floatFromInt(draw.height));
     w = @as(f32, @floatFromInt(draw.width));
@@ -363,7 +362,6 @@ pub fn render() void {
 
     draw.waitForDraws();
     renderWalls();
-
 
     draw.waitForDraws();
     renderSprites();
@@ -391,7 +389,7 @@ pub fn renderFloorCeiling() void {
         const floorStepX = rowDistance * (rayDirX1 - rayDirX0) / w;
         const floorStepY = rowDistance * (rayDirY1 - rayDirY0) / w;
 
-        draw.queueAny(&drawCeilingFloor, .{floorX, floorY, floorStepX, floorStepY, rowDistance, y_floor}); 
+        draw.queueAny(drawCeilingFloor, .{ floorX, floorY, floorStepX, floorStepY, rowDistance, y_floor });
     }
 }
 
@@ -454,16 +452,10 @@ fn shadeByDistance(color: u32, dist: f32) u32 {
     if (g > 255) g = 255;
     if (b > 255) b = 255;
 
-    return (0xff << 24)
-        | (@as(u32, @intFromFloat(r)) << 16)
-        | (@as(u32, @intFromFloat(g)) << 8)
-        | (@as(u32, @intFromFloat(b)));
+    return (0xff << 24) | (@as(u32, @intFromFloat(r)) << 16) | (@as(u32, @intFromFloat(g)) << 8) | (@as(u32, @intFromFloat(b)));
 }
 
-
-pub fn setWalls() void {
-    
-}
+pub fn setWalls() void {}
 
 pub fn renderSprites() void {
     const sprites = curr_sprites.getSprites();
@@ -476,8 +468,8 @@ pub fn renderSprites() void {
         sprites[i].dist = dx * dx + dy * dy;
     }
     
-    for(0..sprites.len) |i| {
-        for(i+1..sprites.len) |j| {
+    for (0..sprites.len) |i| {
+        for (i + 1..sprites.len) |j| {
             if (sprites[sprites[i].order].dist < sprites[sprites[j].order].dist) {
                 const tmp = sprites[i].order;
                 sprites[i].order = sprites[j].order;
@@ -499,55 +491,47 @@ pub fn renderSprites() void {
         
         if (transformY <= 0) continue;
         
-        const spriteScreenX:i32 = @as(i32, @intFromFloat((w / 2) * (1 + transformX / transformY)));
+        const spriteScreenX: i32 = @as(i32, @intFromFloat((w / 2) * (1 + transformX / transformY)));
         
-        const spriteHeight:i32 = @as(i32, @intFromFloat(@abs(h / transformY) / 2));
-        const spriteWidthH:i32 = @as(i32, @intFromFloat(@abs(h / transformY) / 2));
-        const spriteWidth:i32 = spriteWidthH * 2;
+        const spriteHeight: i32 = @as(i32, @intFromFloat(@abs(h / transformY) / 2));
+        const spriteWidthH: i32 = @as(i32, @intFromFloat(@abs(h / transformY) / 2));
+        const spriteWidth: i32 = spriteWidthH * 2;
         
-        var drawStartY:i32 = -spriteHeight + @as(i32, @intFromFloat(h / 2));
+        var drawStartY: i32 = -spriteHeight + @as(i32, @intFromFloat(h / 2));
         if (drawStartY < 0) drawStartY = 0;
-        var drawEndY:i32 = spriteHeight + @as(i32, @intFromFloat(h / 2));
+        var drawEndY: i32 = spriteHeight + @as(i32, @intFromFloat(h / 2));
         if (drawEndY >= @as(i32, @intFromFloat(h))) drawEndY = @as(i32, @intFromFloat(h)) - 1;
         
-        var drawStartX:i32 = -spriteWidthH + spriteScreenX;
+        var drawStartX: i32 = -spriteWidthH + spriteScreenX;
         if (drawStartX < 0) drawStartX = 0;
-        var drawEndX:i32 = spriteWidthH + spriteScreenX;
+        var drawEndX: i32 = spriteWidthH + spriteScreenX;
         if (drawEndX >= @as(i32, @intFromFloat(w))) drawEndX = @as(i32, @intFromFloat(w)) - 1;
         
         const sprite_texture = img.getImage(spr.texture) orelse continue;
 
-        var stripe:i32 = drawStartX;
+        var stripe: i32 = drawStartX;
         draw.waitForDraws();
         while (stripe < drawEndX) : (stripe += 1) {
-            const texX:usize = @as(usize, @intCast(@divFloor((stripe -% (-spriteWidthH +% spriteScreenX)) *% @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
+            const texX: usize = @as(usize, @intCast(@divFloor((stripe -% (-spriteWidthH +% spriteScreenX)) *% @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
             
             if (transformY < zBuffer[@as(usize, @intCast(stripe))]) {
                 const clampedTexX = @min(texX, sprite_texture.height - 1);
                 const row_index = sprite_texture.height - 1 - clampedTexX;
                 const row = sprite_texture.pixels[row_index * sprite_texture.width .. (row_index + 1) * sprite_texture.width];
                 
-                draw.queueTexBVLine(
-                    row,
-                    0xFFFFFFFF,
-                    @as(usize, @intCast(stripe)),
-                    @as(usize, @intCast(drawStartY)),
-                    @as(usize, @intCast(drawEndY - drawStartY)),
-                    sprite_texture.width
-                );
+                draw.queueTexBVLine(row, 0xFFFFFFFF, @as(usize, @intCast(stripe)), @as(usize, @intCast(drawStartY)), @as(usize, @intCast(drawEndY - drawStartY)), sprite_texture.width);
             }
         }
     }
 }
 pub fn renderWalls() void {
-    xLoop:
-    for(0..draw.width) |x| {
-        const cameraX:f32 = @as(f32, @floatFromInt(2 * x)) / w - 1;
+    xLoop: for (0..draw.width) |x| {
+        const cameraX: f32 = @as(f32, @floatFromInt(2 * x)) / w - 1;
         const rayDirX = cam.dir.x + cam.plane.x * cameraX;
         const rayDirY = cam.dir.y + cam.plane.y * cameraX;
 
-        var mapX:i32 = @as(i32, @intFromFloat(cam.position.x));
-        var mapY:i32 = @as(i32, @intFromFloat(cam.position.y));
+        var mapX: i32 = @as(i32, @intFromFloat(cam.position.x));
+        var mapY: i32 = @as(i32, @intFromFloat(cam.position.y));
 
         var sideDistX: f32 = 0;
         var sideDistY: f32 = 0;
@@ -558,34 +542,30 @@ pub fn renderWalls() void {
         var stepX: i32 = 0;
         var stepY: i32 = 0;
 
-        var side:i32 = 0;
-        if(rayDirX < 0) {
+        var side: i32 = 0;
+        if (rayDirX < 0) {
             stepX = -1;
             sideDistX = (cam.position.x - @as(f32, @floatFromInt(mapX))) * deltaDistX;
-        }
-        else {
+        } else {
             stepX = 1;
             sideDistX = (@as(f32, @floatFromInt(mapX)) + 1.0 - cam.position.x) * deltaDistX;
         }
-        if(rayDirY < 0) {
+        if (rayDirY < 0) {
             stepY = -1;
             sideDistY = (cam.position.y - @as(f32, @floatFromInt(mapY))) * deltaDistY;
-        }
-        else {
+        } else {
             stepY = 1;
             sideDistY = (@as(f32, @floatFromInt(mapY)) + 1.0 - cam.position.y) * deltaDistY;
         }
 
         var texture: img.Assets = undefined;
         var tile_info: TileInfo = undefined;
-        scan:
-        while(true) {
-            if(sideDistX < sideDistY) {
+        scan: while (true) {
+            if (sideDistX < sideDistY) {
                 sideDistX += deltaDistX;
                 mapX += stepX;
                 side = 0;
-            }
-            else {
+            } else {
                 sideDistY += deltaDistY;
                 mapY += stepY;
                 side = 1;
@@ -616,7 +596,7 @@ pub fn renderWalls() void {
         perpWallDist = if (side == 0) (sideDistX - deltaDistX) else (sideDistY - deltaDistY);
         zBuffer[x] = perpWallDist;
 
-        const lineHeight:f32 = h / perpWallDist;
+        const lineHeight: f32 = h / perpWallDist;
         
         // const texture: img.Assets = blk: {
         //     const tileInfo = getMapTileInfo(mapX, mapY) orelse break :blk null;
@@ -642,21 +622,21 @@ pub fn renderWalls() void {
         const wall_texture = img.getImage(texture) orelse continue :xLoop;
 
         @setFloatMode(.optimized);
-        const drawStartUnclamped:f32 = -lineHeight / 2 + h / 2;
-        const drawEndUnclamped:f32 = lineHeight / 2 + h / 2;
+        const drawStartUnclamped: f32 = -lineHeight / 2 + h / 2;
+        const drawEndUnclamped: f32 = lineHeight / 2 + h / 2;
 
-        var drawStart:f32 = drawStartUnclamped;
-        if(drawStart < 0) drawStart = 0;
-        var drawEnd:f32 = drawEndUnclamped;
-        if(drawEnd >= h) drawEnd = h - 1;
+        var drawStart: f32 = drawStartUnclamped;
+        if (drawStart < 0) drawStart = 0;
+        var drawEnd: f32 = drawEndUnclamped;
+        if (drawEnd >= h) drawEnd = h - 1;
 
-        const texStartOffset:f32 = if (drawStartUnclamped < 0) -drawStartUnclamped / lineHeight else  0;
-        const texEndOffset:f32 = if (drawEndUnclamped >= h) (drawEndUnclamped - h + 1) / lineHeight else 0;
+        const texStartOffset: f32 = if (drawStartUnclamped < 0) -drawStartUnclamped / lineHeight else 0;
+        const texEndOffset: f32 = if (drawEndUnclamped >= h) (drawEndUnclamped - h + 1) / lineHeight else 0;
 
-        const texStartY:usize = @as(usize, @intFromFloat(texStartOffset * @as(f32, @floatFromInt(wall_texture.width))));
-        const texHeight:usize = @as(usize, @intFromFloat((1.0 - texStartOffset - texEndOffset) * @as(f32, @floatFromInt(wall_texture.width))));   
+        const texStartY: usize = @as(usize, @intFromFloat(texStartOffset * @as(f32, @floatFromInt(wall_texture.width))));
+        const texHeight: usize = @as(usize, @intFromFloat((1.0 - texStartOffset - texEndOffset) * @as(f32, @floatFromInt(wall_texture.width))));
 
-        var wallX:f32 = 0;
+        var wallX: f32 = 0;
         if (side == 0) {
             wallX = cam.position.y + perpWallDist * rayDirY;
         } else {
@@ -666,7 +646,7 @@ pub fn renderWalls() void {
         var texX: usize = @as(usize, @intFromFloat(wallX * @as(f32, @floatFromInt(wall_texture.height))));
         if (texX >= wall_texture.height) texX = wall_texture.height - 1;
 
-        const program = draw.program {
+        const program = draw.program{
             .fragment = adjustBrightnessProgram,
             .args = .{
                 .i1 = side,
@@ -677,26 +657,12 @@ pub fn renderWalls() void {
         const row_index = wall_texture.height - 1 - clampedTexX;
         const row = wall_texture.pixels[row_index * wall_texture.width .. (row_index + 1) * wall_texture.width];
         const end_index = texStartY +% texHeight;
-        if(texStartY > end_index) continue :xLoop;
+        if (texStartY > end_index) continue :xLoop;
 
-        if(!tile_info.translucent) {
-            draw.queueTexSVLine(
-                row[texStartY .. end_index],
-                program, 
-                x,
-                @as(usize, @intFromFloat(drawStart)),
-                @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1,
-                texHeight
-            );
+        if (!tile_info.translucent) {
+            draw.queueTexSVLine(row[texStartY..end_index], program, x, @as(usize, @intFromFloat(drawStart)), @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1, texHeight);
         } else {
-            draw.queueTexBSVLine(
-                row[texStartY .. end_index],
-                program, 
-                x,
-                @as(usize, @intFromFloat(drawStart)),
-                @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1,
-                texHeight
-            );
+            draw.queueTexBSVLine(row[texStartY..end_index], program, x, @as(usize, @intFromFloat(drawStart)), @as(usize, @intFromFloat(drawEnd)) - @as(usize, @intFromFloat(drawStart)) + 1, texHeight);
         }
     }
 }
@@ -730,10 +696,7 @@ fn adjustBrightnessProgram(color: u32, args: draw.program_args) u32 {
     g = std.math.pow(f64, g, 1.0 / gamma);
     b = std.math.pow(f64, b, 1.0 / gamma);
 
-    return (0xff << 24)
-        | (@as(u32, @intFromFloat(r * 255.0)) << 16)
-        | (@as(u32, @intFromFloat(g * 255.0)) << 8)
-        | (@as(u32, @intFromFloat(b * 255.0)));
+    return (0xff << 24) | (@as(u32, @intFromFloat(r * 255.0)) << 16) | (@as(u32, @intFromFloat(g * 255.0)) << 8) | (@as(u32, @intFromFloat(b * 255.0)));
 }
 
 const opacity_img: img.Image = .{
@@ -741,11 +704,11 @@ const opacity_img: img.Image = .{
     .height = 1,
     .pixels = &opacity_pixel_storage,
 };
-var opacity_pixel_storage: [1]u32 = .{ 0xFFFFFFFF };
+var opacity_pixel_storage: [1]u32 = .{0xFFFFFFFF};
 
 pub var screen_tint: u32 = 0x00000000;
 pub fn tintScreen() void {
-    if(screen_tint == 0x00000000) return;
+    if (screen_tint == 0x00000000) return;
 
     draw.queueBlit(&opacity_img, screen_tint, 0, 0, draw.width, draw.height);
 }
@@ -777,9 +740,9 @@ pub const Font = struct {
         var font_map = std.AutoHashMap(u8, LineChar).init(allocator);
 
         var i: usize = 0;
-        var wrap:i8 = 0;
+        var wrap: i8 = 0;
         var wrappped_wraps: usize = 0;
-        var line_char = LineChar {
+        var line_char = LineChar{
             .xS = 0,
             .yS = 0,
             .width = 0,
@@ -794,7 +757,7 @@ pub const Font = struct {
             const b3 = font_data[i + 3];
             const number = @as(u32, b0) | (@as(u32, b1) << 8) | (@as(u32, b2) << 16) | (@as(u32, b3) << 24);
 
-            switch(wrap) {
+            switch (wrap) {
                 0 => line_char.xS = @as(f32, @floatFromInt(number)),
                 1 => line_char.yS = @as(f32, @floatFromInt(number)),
                 2 => line_char.width = @as(f32, @floatFromInt(number)),
@@ -802,27 +765,29 @@ pub const Font = struct {
                 4 => {
                     line_char.x = @as(f32, @floatFromInt(number));
                     
-                    if(internal_string.len <= wrappped_wraps) break;
+                    if (internal_string.len <= wrappped_wraps) break;
 
                     const char: u8 = internal_string[wrappped_wraps];
                     try font_map.put(char, line_char);
                     wrap = -1;
                     wrappped_wraps += 1;
                 },
-                else => { wrap = 0; },
+                else => {
+                    wrap = 0;
+                },
             }
 
             wrap += 1;
         }
 
-        return Font {
+        return Font{
             .font_map = font_map,
             .atlas = atlas,
             .fmtBuff = std.heap.FixedBufferAllocator.init(try std.heap.c_allocator.alloc(u8, 256)),
         };
     }
     
-    pub fn renderStringF(self: *@This(), color: u32, x: usize, y: usize, font_size: f32, comptime fmt: []const u8,  args: anytype ) !void {
+    pub fn renderStringF(self: *@This(), color: u32, x: usize, y: usize, font_size: f32, comptime fmt: []const u8, args: anytype) !void {
         const text = std.fmt.allocPrint(self.fmtBuff.threadSafeAllocator(), fmt, args) catch {
             const needed_size = std.fmt.count(fmt, args) + 10;
             self.fmtBuff.buffer = try std.heap.c_allocator.realloc(self.fmtBuff.buffer, needed_size); 
@@ -844,7 +809,7 @@ pub const Font = struct {
         const font_percent: f32 = font_size / default_font_size;
         var max_char_offset: f32 = 0;
         
-        for(text) |c| {
+        for (text) |c| {
             if (c == '\r' or c == '\n') {
                 max_char_offset = @max(max_char_offset, char_offset);
                 char_offset = @as(f32, @floatFromInt(x));
@@ -855,14 +820,14 @@ pub const Font = struct {
             const rec = self.font_map.get(c) orelse continue;
 
             char_offset += (prev_char.width - prev_char.x) * font_percent;
-            const dest_rect = math.Rectangle(usize) {
+            const dest_rect = math.Rectangle(usize){
                 .x = @as(usize, @intFromFloat(char_offset)),
                 .y = y + @as(usize, @intFromFloat(line_offset)),
                 .width = @as(usize, @intFromFloat(rec.width * font_percent)),
                 .height = @as(usize, @intFromFloat(rec.height * font_percent)),
             };
 
-            const src_rect = math.Rectangle(usize) {
+            const src_rect = math.Rectangle(usize){
                 .x = @as(usize, @intFromFloat(rec.xS)),
                 .y = @as(usize, @intFromFloat(rec.yS)),
                 .width = @as(usize, @intFromFloat(rec.width)),
@@ -880,7 +845,7 @@ pub const Font = struct {
     }
 };
 
-pub const LineChar = struct{
+pub const LineChar = struct {
     xS: f32,
     yS: f32,
     width: f32,
