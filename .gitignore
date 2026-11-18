@@ -3,3 +3,5 @@
 zig-out/
 .idea/
 zig-pkg
+/result
+/result-*
