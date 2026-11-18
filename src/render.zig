@@ -6,7 +6,7 @@ const std = @import("std");
 pub const sprite = @import("sprite.zig");
 pub const argb = minifb.argb;
 
-pub fn extractColors(color: u32) [4]u8 {
+pub fn separateArgb(color: u32) [4]u8 {
     const a = @as(u8, @intCast((color >> 24) & 0xFF));
     const r = @as(u8, @intCast((color >> 16) & 0xFF));
     const g = @as(u8, @intCast((color >> 8) & 0xFF));

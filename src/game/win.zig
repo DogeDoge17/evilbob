@@ -3,6 +3,7 @@ const renderer = @import("../render.zig");
 const sprite = @import("../sprite.zig");
 const time = @import("../time.zig");
 const scene = @import("../scene.zig");
+const input = @import("../input.zig");
 
 var camera: renderer.Camera = undefined;
 var win_bob: *sprite.Sprite = undefined;
@@ -32,7 +33,16 @@ var progress: f32 = 0;
 var velocity: f32 = 0.35;
 var black_wait: f32 = 0.5;
 pub fn update() void {
-    if (renderer.extractColors(renderer.screen_tint)[0] >= 255) {
+    if (input.getKeyUp(.Escape)) {
+        scene.loadScene(@import("title.zig"));
+        return;
+    }
+
+    if (input.getKeyUp(.Enter)) {
+        progress = @max(4.0, progress);
+    }
+
+    if (renderer.separateArgb(renderer.screen_tint)[0] >= 255) {
         black_wait -= time.gameTime;
         if (black_wait <= 0) {
             scene.loadScene(@import("title.zig"));
@@ -48,7 +58,7 @@ pub fn update() void {
     }
 
     if (progress > 4) {
-        const argb = renderer.extractColors(renderer.screen_tint);
+        const argb = renderer.separateArgb(renderer.screen_tint);
 
         const fa = @as(f32, @floatFromInt(argb[0]));
         const newAlpha = @min(fa + 255 * time.gameTime, 255);
