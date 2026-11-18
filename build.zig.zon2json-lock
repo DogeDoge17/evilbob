@@ -4,9 +4,9 @@
     "url": "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.23.tar.gz",
     "hash": "sha256-7P17clUBbqZUhL1AY9qzh0pClnsDgLHHzQNGOZe0juQ="
   },
-  "zig_minifb-0.0.0-O0PEU_icBgCEkFI9-PMvhIlArrEyWodBKSoChiSUlGuM": {
+  "zig_minifb-0.0.0-O0PEU9CdBgBp4dh3OqywycvI7N4n3ktVTz2aWv1XogAA": {
     "name": "zig_minifb",
-    "url": "git+https://github.com/DogeDoge17/zig-minifb#776c1b88498512ead9893d43ce4dc322e6e50041",
-    "hash": "sha256-YU7tPCqJGVFXjX0HmPOeTawv3WnHEP5mgAo24+B0Zn0="
+    "url": "git+https://github.com/DogeDoge17/zig-minifb#59c972837cf78f7e7d09e1d66c883ce7e0a4dcd2",
+    "hash": "sha256-EGukByV2dQvFTBhb1mt9pKu4KbKni9c6hclWsze2mE4="
   }
 }

@@ -69,7 +69,6 @@ pub fn Deque(comptime T: type) type {
             }
         }
 
-
         /// If the current capacity is less than `new_capacity`, this function will
         /// modify the deque so that it can hold exactly `new_capacity` items.
         /// Invalidates element pointers if additional memory is needed.
@@ -380,7 +379,7 @@ fn fuzzAgainstArrayList(_: void, input: []const u8) anyerror!void {
         max,
     };
     for (input[1..]) |byte| {
-        switch (@as(Action, @enumFromInt(byte % (@intFromEnum(Action.max))))) {
+        switch (@as(Action, @fromBackingInt(@intCast(byte % (@backingInt(Action.max)))))) {
             .push_back => {
                 const item = random.int(u8);
                 try testing.expectEqual(

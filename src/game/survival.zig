@@ -41,7 +41,7 @@ pub var random: std.Random = undefined;
 
 pub fn init() !void {
     camera = .{ .dir = .{ .x = 0.001, .y = -1.001 }, .plane = .{ .x = -1.001, .y = 0.001 }, .position = .{ .x = 13, .y = 31 } };
-    skybox = img.image_cache.items[@as(usize, @intFromEnum(img.Assets.skybox))];
+    skybox = img.image_cache.items[@as(usize, @backingInt(img.Assets.skybox))];
 
     renderer.cam = &camera;
     player.cam = &camera;

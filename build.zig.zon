@@ -2,15 +2,15 @@
     .name = .evilbob,
     .version = "0.0.0",
     .fingerprint = 0x76c167353643d14d, // Changing this has security and trust implications.
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.1",
     .dependencies = .{
         .miniaudio_c = .{
             .url = "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.23.tar.gz",
             .hash = "N-V-__8AAPu4vwC_P5AHlL_kEON58uGgrDcJSjGq9Hc5yadh",
         },
         .zig_minifb = .{
-            .url = "git+https://github.com/DogeDoge17/zig-minifb#776c1b88498512ead9893d43ce4dc322e6e50041",
-            .hash = "zig_minifb-0.0.0-O0PEU_icBgCEkFI9-PMvhIlArrEyWodBKSoChiSUlGuM",
+            .url = "git+https://github.com/DogeDoge17/zig-minifb#59c972837cf78f7e7d09e1d66c883ce7e0a4dcd2",
+            .hash = "zig_minifb-0.0.0-O0PEU9CdBgBp4dh3OqywycvI7N4n3ktVTz2aWv1XogAA",
         },
     },
     .paths = .{

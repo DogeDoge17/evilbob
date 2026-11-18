@@ -16,7 +16,7 @@ pub fn init() void {
 
     renderer.cam = &camera;
 
-    skybox = renderer.img.image_cache.items[@as(usize, @intFromEnum(renderer.img.Assets.skybox))];
+    skybox = renderer.img.image_cache.items[@as(usize, @backingInt(renderer.img.Assets.skybox))];
 
     renderer.curr_sprites.reset();
     win_bob = renderer.curr_sprites.createSprite(std.heap.page_allocator, .{ .x = 13, .y = 31 }, .win_bob) catch |err| {

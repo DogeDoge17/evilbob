@@ -15,10 +15,7 @@ pub fn extractColors(color: u32) [4]u8 {
 }
 
 pub fn combineColors(a: u8, r: u8, g: u8, b: u8) u32 {
-    return (@as(u32, a) << 24)
-        | (@as(u32, r) << 16)
-        | (@as(u32, g) << 8)
-        |  @as(u32, b);
+    return (@as(u32, a) << 24) | (@as(u32, r) << 16) | (@as(u32, g) << 8) | @as(u32, b);
 }
 
 pub const Camera = struct {
@@ -28,15 +25,17 @@ pub const Camera = struct {
 };
 pub var cam: *Camera = undefined;
 
-pub const mapWidth = @as(f64, worldMap[0].len); const umapWidth = mapWidth.len;
-pub const mapHeight = @as(f64, worldMap.len); const umapHeight = worldMap.len;
+pub const mapWidth = @as(f64, worldMap[0].len);
+const umapWidth = mapWidth.len;
+pub const mapHeight = @as(f64, worldMap.len);
+const umapHeight = worldMap.len;
 
 pub const TileType = enum(u32) {
     AR = 0, // Air
     WL, // Wall
     DR, // Door
     WN, // Window
-    FW, // Food Window 
+    FW, // Food Window
     FN, // Fence
     FL, // Locked Fence
     WD, // Wooden Wall
@@ -71,188 +70,188 @@ pub const FloorInfo = struct {
     f_type: FloorType,
     texture: ?img.Assets,
 };
-pub var tiles: [@typeInfo(TileType).@"enum".fields.len]TileInfo = undefined;
-pub var floors: [@typeInfo(FloorType).@"enum".fields.len]FloorInfo = undefined;
+pub var tiles: [@typeInfo(TileType).@"enum".field_names.len]TileInfo = undefined;
+pub var floors: [@typeInfo(FloorType).@"enum".field_names.len]FloorInfo = undefined;
 
 // reversed for some reason
 pub const worldMap = [_][26]TileType{
-   // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
-  .{ .AR,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.AR },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.WL,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.WL,.KS,.WL,.WL,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KK,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.WL,.AR,.AR,.AR,.AR,.AR,.AR,.KD,.AR,.AR,.AR,.AR,.AR,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.DR,.WL,.FW,.WL,.WL,.WL,.WL,.WL,.WL,.DR,.WL,.WL,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.WN,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.WD,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.D1,.D2,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.WN,.WD,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN },
-  .{ .AR,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.AR,.AR,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.FN,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FN,.AR,.AR,.FN,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.FL,.FL,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+    // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+    .{ .AR, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .AR },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .WL, .WL, .WL, .WL, .WL, .WL, .DR, .WL, .WL, .WL, .WL, .WL, .WL, .WL, .WL, .KS, .WL, .WL, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .AR, .KK, .AR, .AR, .AR, .AR, .AR, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .AR, .KK, .AR, .AR, .AR, .AR, .AR, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .AR, .KK, .AR, .AR, .AR, .AR, .AR, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .AR, .KK, .AR, .AR, .AR, .AR, .AR, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .WL, .AR, .AR, .AR, .AR, .AR, .AR, .KD, .AR, .AR, .AR, .AR, .AR, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WL, .WL, .WL, .WL, .WL, .DR, .WL, .DR, .WL, .FW, .WL, .WL, .WL, .WL, .WL, .WL, .DR, .WL, .WL, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .WN, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .WD, .WN, .WN, .WN, .WN, .WN, .WN, .WN, .WN, .D1, .D2, .WN, .WN, .WN, .WN, .WN, .WN, .WN, .WN, .WD, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN },
+    .{ .AR, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .AR, .AR, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .FN, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN, .AR, .AR, .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN, .AR, .AR, .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN, .AR, .AR, .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN, .AR, .AR, .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FN, .AR, .AR, .FN, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .FL, .FL, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
 };
 
 pub const floorMap = [worldMap.len][26]FloorType{
-   // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.GW,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
-  .{ .SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD,.SD },
+    // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .GW, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
+    .{ .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD, .SD },
 };
 
 pub const ceilingMap = [worldMap.len][26]FloorType{
-   // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.WD,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
-  .{ .AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR,.AR },
+    // 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .WD, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
+    .{ .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR, .AR },
 };
 
 var zBuffer: [800]f32 = undefined;
@@ -285,7 +284,7 @@ pub inline fn getMapTileSafe(x: anytype, y: anytype) ?u32 {
         else => return null,
     });
 
-    return @intFromEnum(worldMap[uy][ux]);
+    return @backingInt(worldMap[uy][ux]);
 }
 
 pub inline fn getFloorTileSafe(x: anytype, y: anytype) ?u32 {
@@ -306,7 +305,7 @@ pub inline fn getFloorTileSafe(x: anytype, y: anytype) ?u32 {
         else => return null,
     });
 
-    return @intFromEnum(floorMap[uy][ux]);
+    return @backingInt(floorMap[uy][ux]);
 }
 
 pub inline fn getCeilingTileSafe(x: anytype, y: anytype) ?u32 {
@@ -327,7 +326,7 @@ pub inline fn getCeilingTileSafe(x: anytype, y: anytype) ?u32 {
         else => return null,
     });
 
-    return @intFromEnum(ceilingMap[uy][ux]);
+    return @backingInt(ceilingMap[uy][ux]);
 }
 
 pub inline fn getMapTileInfo(x: anytype, y: anytype) ?TileInfo {
@@ -374,7 +373,7 @@ pub fn renderFloorCeiling() void {
     const rayDirY1: f32 = cam.dir.y + cam.plane.y;
 
     const half_h: f32 = h / 2.0;
-    const posZ: f32 = half_h; 
+    const posZ: f32 = half_h;
 
     var y_floor: usize = @as(usize, @intFromFloat(half_h));
     while (y_floor < draw.height) : (y_floor += 1) {
@@ -467,7 +466,7 @@ pub fn renderSprites() void {
         const dy = spr.pos.y - cam.position.y;
         sprites[i].dist = dx * dx + dy * dy;
     }
-    
+
     for (0..sprites.len) |i| {
         for (i + 1..sprites.len) |j| {
             if (sprites[sprites[i].order].dist < sprites[sprites[j].order].dist) {
@@ -477,48 +476,48 @@ pub fn renderSprites() void {
             }
         }
     }
-    
+
     for (0..sprites.len) |i| {
         const ord = sprites[i].order;
         const spr = sprites[ord];
-        
+
         const spriteX = spr.pos.x - cam.position.x;
         const spriteY = spr.pos.y - cam.position.y;
-        
+
         const invDet = 1.0 / (cam.plane.x * cam.dir.y - cam.dir.x * cam.plane.y);
         const transformX = invDet * (cam.dir.y * spriteX - cam.dir.x * spriteY);
         const transformY = invDet * (-cam.plane.y * spriteX + cam.plane.x * spriteY);
-        
+
         if (transformY <= 0) continue;
-        
+
         const spriteScreenX: i32 = @as(i32, @intFromFloat((w / 2) * (1 + transformX / transformY)));
-        
+
         const spriteHeight: i32 = @as(i32, @intFromFloat(@abs(h / transformY) / 2));
         const spriteWidthH: i32 = @as(i32, @intFromFloat(@abs(h / transformY) / 2));
         const spriteWidth: i32 = spriteWidthH * 2;
-        
+
         var drawStartY: i32 = -spriteHeight + @as(i32, @intFromFloat(h / 2));
         if (drawStartY < 0) drawStartY = 0;
         var drawEndY: i32 = spriteHeight + @as(i32, @intFromFloat(h / 2));
         if (drawEndY >= @as(i32, @intFromFloat(h))) drawEndY = @as(i32, @intFromFloat(h)) - 1;
-        
+
         var drawStartX: i32 = -spriteWidthH + spriteScreenX;
         if (drawStartX < 0) drawStartX = 0;
         var drawEndX: i32 = spriteWidthH + spriteScreenX;
         if (drawEndX >= @as(i32, @intFromFloat(w))) drawEndX = @as(i32, @intFromFloat(w)) - 1;
-        
+
         const sprite_texture = img.getImage(spr.texture) orelse continue;
 
         var stripe: i32 = drawStartX;
         draw.waitForDraws();
         while (stripe < drawEndX) : (stripe += 1) {
             const texX: usize = @as(usize, @intCast(@divFloor((stripe -% (-spriteWidthH +% spriteScreenX)) *% @as(i32, @intCast(sprite_texture.width)), spriteWidth)));
-            
+
             if (transformY < zBuffer[@as(usize, @intCast(stripe))]) {
                 const clampedTexX = @min(texX, sprite_texture.height - 1);
                 const row_index = sprite_texture.height - 1 - clampedTexX;
                 const row = sprite_texture.pixels[row_index * sprite_texture.width .. (row_index + 1) * sprite_texture.width];
-                
+
                 draw.queueTexBVLine(row, 0xFFFFFFFF, @as(usize, @intCast(stripe)), @as(usize, @intCast(drawStartY)), @as(usize, @intCast(drawEndY - drawStartY)), sprite_texture.width);
             }
         }
@@ -597,7 +596,7 @@ pub fn renderWalls() void {
         zBuffer[x] = perpWallDist;
 
         const lineHeight: f32 = h / perpWallDist;
-        
+
         // const texture: img.Assets = blk: {
         //     const tileInfo = getMapTileInfo(mapX, mapY) orelse break :blk null;
         //     if (!tileInfo.directional) break :blk tileInfo.texture orelse null;
@@ -618,7 +617,7 @@ pub fn renderWalls() void {
         // } orelse continue :xLoop;
 
         // const texture = (getMapTileInfo(mapX, mapY) orelse continue :xLoop).texture orelse continue :xLoop;
-        
+
         const wall_texture = img.getImage(texture) orelse continue :xLoop;
 
         @setFloatMode(.optimized);
@@ -713,7 +712,7 @@ pub fn tintScreen() void {
     draw.queueBlit(&opacity_img, screen_tint, 0, 0, draw.width, draw.height);
 }
 
-const internal_string = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"; 
+const internal_string = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 const default_font_size = 126;
 pub var the_font: Font = undefined;
 pub const Font = struct {
@@ -764,7 +763,7 @@ pub const Font = struct {
                 3 => line_char.height = @as(f32, @floatFromInt(number)),
                 4 => {
                     line_char.x = @as(f32, @floatFromInt(number));
-                    
+
                     if (internal_string.len <= wrappped_wraps) break;
 
                     const char: u8 = internal_string[wrappped_wraps];
@@ -786,11 +785,11 @@ pub const Font = struct {
             .fmtBuff = std.heap.FixedBufferAllocator.init(try std.heap.c_allocator.alloc(u8, 256)),
         };
     }
-    
+
     pub fn renderStringF(self: *@This(), color: u32, x: usize, y: usize, font_size: f32, comptime fmt: []const u8, args: anytype) !void {
         const text = std.fmt.allocPrint(self.fmtBuff.threadSafeAllocator(), fmt, args) catch {
             const needed_size = std.fmt.count(fmt, args) + 10;
-            self.fmtBuff.buffer = try std.heap.c_allocator.realloc(self.fmtBuff.buffer, needed_size); 
+            self.fmtBuff.buffer = try std.heap.c_allocator.realloc(self.fmtBuff.buffer, needed_size);
 
             const text = try std.fmt.allocPrint(self.fmtBuff.threadSafeAllocator(), fmt, args);
             defer self.fmtBuff.reset();
@@ -808,14 +807,14 @@ pub const Font = struct {
         var prev_char: LineChar = .{ .xS = 0, .yS = 0, .width = 0, .height = 0, .x = 0 };
         const font_percent: f32 = font_size / default_font_size;
         var max_char_offset: f32 = 0;
-        
+
         for (text) |c| {
             if (c == '\r' or c == '\n') {
                 max_char_offset = @max(max_char_offset, char_offset);
                 char_offset = @as(f32, @floatFromInt(x));
                 prev_char = .{ .xS = 0, .yS = 0, .width = 0, .height = 0, .x = 0 };
                 line_offset += self.line_seperation;
-                continue; 
+                continue;
             }
             const rec = self.font_map.get(c) orelse continue;
 

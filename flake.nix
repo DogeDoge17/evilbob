@@ -21,7 +21,7 @@
       pkgs = import nixpkgs {inherit system;};
       env = zig2nix.zig-env.${system} {
         inherit nixpkgs;
-        zig = zig2nix.packages.${system}.zig-0_16_0;
+        zig = zig2nix.packages.${system}.zig-0_17_1;
       };
       depArchives = env.deriveLockFile ./build.zig.zon2json-lock {
         zig = env.zig;

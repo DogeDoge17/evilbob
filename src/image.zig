@@ -99,7 +99,7 @@ pub const Assets = blk: {
 
 pub fn init() !void {
     fba = std.heap.FixedBufferAllocator.init(image_ptr_space[0..]);
-    image_cache = try std.ArrayList(*Image).initCapacity(std.heap.page_allocator, @typeInfo(Assets).@"enum".fields.len + 10);
+    image_cache = try std.ArrayList(*Image).initCapacity(std.heap.page_allocator, @typeInfo(Assets).@"enum".field_names.len + 10);
 
     inline for (0..image_uris.len) |i| {
         const image_data = @embedFile(image_uris[i]);
@@ -113,7 +113,7 @@ pub fn getImage(image_id: anytype) ?*Image {
     const idx = @as(usize, switch (@typeInfo(@TypeOf(image_id))) {
         .float => @intFromFloat(image_id),
         .int => @intCast(image_id),
-        .@"enum" => @intFromEnum(image_id),
+        .@"enum" => @backingInt(image_id),
         else => return null,
     });
 
@@ -130,7 +130,7 @@ pub fn getDimensions(image_id: anytype) ?struct { width: usize, height: usize } 
 
 pub var image_cache: std.ArrayList(*Image) = undefined;
 var image_cache_mutex: std.Io.Mutex = .init;
-var image_ptr_space: [@typeInfo(Assets).@"enum".fields.len * @sizeOf(Image) * 2]u8 = undefined;
+var image_ptr_space: [@typeInfo(Assets).@"enum".field_names.len * @sizeOf(Image) * 2]u8 = undefined;
 var fba: std.heap.FixedBufferAllocator = undefined;
 pub inline fn loadImage(alloc: std.mem.Allocator, comptime path: []const u8) !usize {
     return loadImageFull(alloc, std.fmt.comptimePrint("assets/{s}.tga", .{path}));

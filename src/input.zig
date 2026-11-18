@@ -16,40 +16,40 @@ const KeyStates = enum(u8) {
     released = 3,
 };
 
-pub var keyStates: [max_key_count]KeyStatus = [_]KeyStatus{ 
-    .{  .frame = 0, 
-        .state = .inactive,
-        .queue = deque.Deque(KeyStates).empty, 
-    } 
-} ** max_key_count;
+pub var keyStates: [max_key_count]KeyStatus = @splat(.{
+    .frame = 0,
+    .state = .inactive,
+    .queue = deque.Deque(KeyStates).empty,
+});
 
-pub var mouseStates: [max_mouse_count]KeyStatus = [_]KeyStatus{ 
-    .{  .frame = 0, 
-        .state = .inactive,
-        .queue = deque.Deque(KeyStates).empty, 
-    } 
-} ** max_mouse_count;
+pub var mouseStates: [max_mouse_count]KeyStatus = @splat(.{
+    .frame = 0,
+    .state = .inactive,
+    .queue = deque.Deque(KeyStates).empty,
+});
 
-var mouse = math.Vector2{ .x = 0, .y = 0 }; 
+var mouse = math.Vector2{ .x = 0, .y = 0 };
 
 var currentFrame: u64 = 0;
 var allocator: std.mem.Allocator = undefined;
 var activeWindow: *minifb.Window = undefined;
 
-const max_key_count:usize = blk: {
-    const fields = @typeInfo(minifb.Key).@"enum".fields;
+const max_key_count: usize = blk: {
     var max = 0;
-    for (fields) |field| {
-        max = @max(max, field.value);
+
+    const enums = @typeInfo(minifb.Key).@"enum";
+    for (enums.field_values) |values| {
+        max = @max(max, values);
     }
     break :blk max + 1;
 };
 
-const max_mouse_count:usize = blk: {
-    const fields = @typeInfo(minifb.MouseButton).@"enum".fields;
+const max_mouse_count: usize = blk: {
     var max = 0;
-    for (fields) |field| {
-        max = @max(max, field.value);
+
+    const enums = @typeInfo(minifb.MouseButton).@"enum";
+    for (enums.field_values) |values| {
+        max = @max(max, values);
     }
     break :blk max + 1;
 };
@@ -57,23 +57,23 @@ const max_mouse_count:usize = blk: {
 /// UPDATE WILL PERFORM THE NEC CHANGES ON THE PREVIOUS FRAME'S STATES AND PREP FOR THE NEXT FRAME
 pub fn update(frame: u64) void {
     currentFrame = frame;
-    
+
     for (0..keyStates.len) |i| {
-        const key:*KeyStatus = &keyStates[i];
+        const key: *KeyStatus = &keyStates[i];
 
         const capturedEvent = key.queue.popFront();
-        if(capturedEvent) |event| {
+        if (capturedEvent) |event| {
             key.*.state = event;
         } else {
-            key.*.state = switch(key.*.state) {
+            key.*.state = switch (key.*.state) {
                 .released => .inactive,
                 .held => .held,
                 .pressed => .held,
-                .inactive => .inactive
+                .inactive => .inactive,
             };
         }
-    }   
-    
+    }
+
     // for (0..mouseStates.len) |i| {
     //     const button:*KeyStatus = &mouseStates[i];
     //
@@ -89,8 +89,8 @@ pub fn update(frame: u64) void {
     //             .inactive => .inactive
     //         };
     //     }
-    // }  
-    
+    // }
+
     // const buttonStatus = activeWindow.getMouseButtonBuffer();
 
     // for(0..8) |i| {
@@ -109,20 +109,20 @@ pub fn update(frame: u64) void {
     // }
     //
     for (0..mouseStates.len) |i| {
-        const button:*KeyStatus = &mouseStates[i];
+        const button: *KeyStatus = &mouseStates[i];
 
         const capturedEvent = button.queue.popFront();
-        if(capturedEvent) |event| {
+        if (capturedEvent) |event| {
             button.*.state = event;
         } else {
-            button.*.state = switch(button.*.state) {
+            button.*.state = switch (button.*.state) {
                 .released => .inactive,
                 .held => .held,
                 .pressed => .held,
-                .inactive => .inactive
+                .inactive => .inactive,
             };
         }
-    }  
+    }
 }
 
 /// Fires in a non deterministic way relavtive to frame updates
@@ -137,7 +137,7 @@ fn onKeyEvent(window: *minifb.cWindow, key: minifb.Key, keyMod: minifb.KeyMod, i
         keyStates[index].queue.pushBack(allocator, .released) catch |err| {
             std.debug.print("queue push error: {}\n", .{err});
         };
-        return; 
+        return;
     }
 
     if (keyStates[index].state == .pressed or keyStates[index].state == .held) return;
@@ -155,24 +155,22 @@ fn onMouseEvent(window: *minifb.cWindow, button: minifb.MouseButton, keyMod: min
 
     // mouseStates[index].frame = currentFrame;
 
-    if(is_pressed) {
+    if (is_pressed) {
         mouseStates[index].queue.pushBack(allocator, .pressed) catch |err| {
             std.debug.print("queue push error: {}\n", .{err});
         };
-    }
-    else {
+    } else {
         mouseStates[index].queue.pushBack(allocator, .released) catch |err| {
             std.debug.print("queue push error: {}\n", .{err});
         };
     }
-
 
     // if (!is_pressed) {
     //     if (mouseStates[index].queue.back()) |back| if (back == .released) return;
     //     mouseStates[index].queue.pushBack(allocator, .released) catch |err| {
     //         std.debug.print("queue push error: {}\n", .{err});
     //     };
-    //     return; 
+    //     return;
     // }
     //
     // if (mouseStates[index].state == .pressed or mouseStates[index].state == .held) return;
@@ -185,10 +183,10 @@ fn onMouseEvent(window: *minifb.cWindow, button: minifb.MouseButton, keyMod: min
 
 pub fn initInput(window: *minifb.Window, alloc: std.mem.Allocator) !void {
     allocator = alloc;
-    for(&keyStates) |*state|{
+    for (&keyStates) |*state| {
         state.*.queue = try .initCapacity(alloc, 16);
     }
-    for(&mouseStates) |*state|{
+    for (&mouseStates) |*state| {
         state.*.queue = try .initCapacity(alloc, 16);
     }
     window.onKeyboard(onKeyEvent);
@@ -226,18 +224,18 @@ pub var mx_multiplier: f32 = 0;
 pub var my_multiplier: f32 = 0;
 pub inline fn getMouseXA(comptime T: anytype) T {
     const mx = @as(f32, @floatFromInt(@max(activeWindow.getMouseX() - mx_offset, 0))) * mx_multiplier;
-    return @as(T, switch(@typeInfo(@TypeOf(T))) {
+    return @as(T, switch (@typeInfo(@TypeOf(T))) {
         .float => @floatCast(mx),
-        .int =>  @intFromFloat(mx),
-        else => @intFromFloat(mx)
+        .int => @intFromFloat(mx),
+        else => @intFromFloat(mx),
     });
 }
 
 pub inline fn getMouseYA(comptime T: anytype) T {
     const my = @as(f32, @floatFromInt(@max(activeWindow.getMouseY() - my_offset, 0))) * my_multiplier;
-    return @as(T, switch(@typeInfo(@TypeOf(T))) {
+    return @as(T, switch (@typeInfo(@TypeOf(T))) {
         .float => @floatCast(my),
-        .int =>  @intFromFloat(my),
-        else => @intFromFloat(my)
+        .int => @intFromFloat(my),
+        else => @intFromFloat(my),
     });
 }
