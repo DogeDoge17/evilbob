@@ -24,8 +24,7 @@ pub const TaskFrame = struct {
     length: f32 = 5,
     progress: f32 = 0,
     heap: bool = false,
-    denominator: ?f32 = null,
-    depth: f32 = 0,
+    depth: usize = 0,
     completed: bool = false,
 
     pub fn fromFrame(self: @This(), allocator: std.mem.Allocator, register_sprite: bool) !*Task {
@@ -44,7 +43,7 @@ pub const TaskFrame = struct {
                 break :blk new_sprite;
             } else {
                 break :blk null;
-            }
+            } // zig fmt: on
         };
 
         if (register_sprite)
@@ -64,7 +63,6 @@ pub const TaskFrame = struct {
             .depth = self.depth,
             .completed = false,
             .sprite = sprite_copy,
-            .denominator = self.denominator,
             .finished = self.finished,
             .heap = true,
         };
@@ -72,83 +70,169 @@ pub const TaskFrame = struct {
     }
 };
 
+// zig fmt: off
 // yoooo ts is kinda like json if you think about it
-pub const possible_tasks = [_]TaskFrame{ .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 20, .y = 15 },
-    .texture = img.Assets.table_dirty,
-} }, .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 16, .y = 15 },
-    .texture = img.Assets.table_dirty,
-} }, .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 18, .y = 18 },
-    .texture = img.Assets.table_dirty,
-} }, .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 8, .y = 18 },
-    .texture = img.Assets.table_dirty,
-} }, .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 10, .y = 15 },
-    .texture = img.Assets.table_dirty,
-} }, .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 7, .y = 14 },
-    .texture = img.Assets.table_dirty,
-} }, .{ .name = "Clean Table", .type = TaskTypes.clean_table, .length = 3, .finished = .table_clean, .sprite = &.{
-    .pos = .{ .x = 5, .y = 17 },
-    .texture = img.Assets.table_dirty,
-} }, .{
-    .name = "Take Out Garbage",
-    .type = TaskTypes.garbage,
-    .length = 4,
-    .finished = .trash,
-    .denominator = 2,
-    .sprite = &.{
-        .pos = .{ .x = 6.5, .y = 9.7 },
-        .texture = img.Assets.trash_full,
+pub const possible_tasks = [_]TaskFrame{
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 20, .y = 15 },
+            .texture = img.Assets.table_dirty,
+        },
     },
-    .next = &.{ .name = "Throw in Dumpster", .type = TaskTypes.garbage, .length = 1, .finished = .dumpster_finished, .depth = 50, .sprite = &.{
-        .pos = .{ .x = 14, .y = 3.2 },
-        .texture = img.Assets.dumpster,
-    } },
-}, .{
-    .name = "Do Dishes",
-    .type = .wash_dishes,
-    .length = 5,
-    .finished = .kitchen_sink_clean,
-    .sprite = &.{
-        .pos = .{ .x = 10.6, .y = 7 },
-        .texture = .kitchen_sink,
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 16, .y = 15 },
+            .texture = img.Assets.table_dirty,
+        },
     },
-}, .{
-    .name = "Clean Toilet",
-    .type = .toilet,
-    .length = 5,
-    .finished = .toliet,
-    .sprite = &.{
-        .pos = .{ .x = 6.5, .y = 6 },
-        .texture = .toliet,
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 18, .y = 18 },
+            .texture = img.Assets.table_dirty,
+        },
     },
-}, .{
-    .name = "Clean Toilet",
-    .type = .toilet,
-    .length = 5,
-    .finished = .toliet,
-    .sprite = &.{
-        .pos = .{ .x = 5.5, .y = 6 },
-        .texture = .toliet,
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 8, .y = 18 },
+            .texture = img.Assets.table_dirty,
+        },
     },
-}, .{
-    .name = "Count Money",
-    .type = .count_money,
-    .finished = .count_finish,
-    .length = 3,
-    .sprite = &.{
-        .pos = .{ .x = 12.4, .y = 11.7 },
-        .texture = .count,
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 10, .y = 15 },
+            .texture = img.Assets.table_dirty,
+        },
     },
-    .next = &.{ .name = "Store in Vault", .type = TaskTypes.count_money, .length = 1, .finished = .none, .depth = 50, .sprite = &.{
-        .pos = .{ .x = 19.5, .y = 5 },
-        .texture = img.Assets.none,
-    } },
-} };
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 7, .y = 14 },
+            .texture = img.Assets.table_dirty,
+        },
+    },
+    .{
+        .name = "Clean Table",
+        .type = TaskTypes.clean_table,
+        .length = 3,
+        .finished = .table_clean,
+        .sprite = &.{
+            .pos = .{ .x = 5, .y = 17 },
+            .texture = img.Assets.table_dirty,
+        },
+    },
+    .{
+        .name = "Take Out Garbage",
+        .type = TaskTypes.garbage,
+        .length = 4,
+        .finished = .trash,
+        .sprite = &.{
+            .pos = .{ .x = 6.5, .y = 9.7 },
+            .texture = img.Assets.trash_full,
+        },
+        .next = &.{
+            .name = "Throw in Dumpster",
+            .type = TaskTypes.garbage,
+            .length = 1,
+            .finished = .dumpster_finished,
+            .depth = 1,
+            .sprite = &.{
+                .pos = .{ .x = 14, .y = 3.2 },
+                .texture = img.Assets.dumpster,
+            },
+        },
+    },
+    .{
+        .name = "Do Dishes",
+        .type = .wash_dishes,
+        .length = 5,
+        .finished = .kitchen_sink_clean,
+        .sprite = &.{
+            .pos = .{ .x = 10.6, .y = 7 },
+            .texture = .kitchen_sink,
+        },
+    },
+    .{
+        .name = "Clean Toilet",
+        .type = .toilet,
+        .length = 5,
+        .finished = .toliet,
+        .sprite = &.{
+            .pos = .{ .x = 6.5, .y = 6 },
+            .texture = .toliet,
+        },
+    },
+    .{
+        .name = "Clean Toilet",
+        .type = .toilet,
+        .length = 5,
+        .finished = .toliet,
+        .sprite = &.{
+            .pos = .{ .x = 5.5, .y = 6 },
+            .texture = .toliet,
+        },
+    },
+    .{
+        .name = "Count Money",
+        .type = .count_money,
+        .finished = .count_finish,
+        .length = 3,
+        .sprite = &.{
+            .pos = .{ .x = 12.4, .y = 11.7 },
+            .texture = .count,
+        },
+        .next = &.{
+            .name = "Store in Vault",
+            .type = TaskTypes.count_money,
+            .length = 1,
+            .finished = .none,
+            .depth = 1,
+            .sprite = &.{
+                .pos = .{ .x = 19.5, .y = 5 },
+                .texture = img.Assets.none,
+            },
+        },
+    },
+};
+// zig fmt: on
+const denominators = blk: {
+    var out: [@typeInfo(TaskTypes).@"enum".field_names.len]usize = @splat(0);
+    for (possible_tasks) |task| {
+        var count: usize = 1;
+        var next: ?*const TaskFrame = task.next;
+
+        while (next != null) {
+            count += 1;
+            next = next.?.next;
+        }
+
+        out[@backingInt(task.type)] = count;
+    }
+
+    break :blk out;
+};
 
 pub const Task = struct {
     name: []const u8,
@@ -159,8 +243,7 @@ pub const Task = struct {
     length: f32 = 5,
     progress: f32 = 0,
     heap: bool = false,
-    depth: f32 = 0,
-    denominator: ?f32 = 0,
+    depth: usize = 0,
     completed: bool,
 
     pub inline fn drawStatus(self: *const @This()) void {
@@ -373,12 +456,13 @@ pub const CheckList = struct {
 
         if (self.head != null) {
             while (current) |node| {
-                const multi = node.task.depth > 0 or node.task.next != null;
+                const dem = denominators[@backingInt(node.task.type)];
 
-                if (multi) {
-                    const num, var dem = math.decimal2Frac(node.task.depth / 100);
-                    dem = node.task.denominator orelse dem;
-                    render.the_font.renderStringF(render.argb(255, 255, 255, 255), draw.width - box_width, y_offset + 10, 16, "({d:.0}/{d:.0}) {s}", .{ num, dem, node.task.name }) catch |err| {
+                if (dem > 1) {
+                    const num = node.task.depth;
+                    // const num, var dem = math.decimal2Frac(node.task.depth / 100);
+                    // dem = node.task.denominator orelse dem;
+                    render.the_font.renderStringF(render.argb(255, 255, 255, 255), draw.width - box_width, y_offset + 10, 16, "({d}/{d}) {s}", .{ num, dem, node.task.name }) catch |err| {
                         std.debug.panic("Failed to draw checklist item: {}\n", .{err});
                     };
                 } else {
