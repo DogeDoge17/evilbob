@@ -114,7 +114,7 @@ pub fn getImage(image_id: anytype) ?*Image {
         .float => @intFromFloat(image_id),
         .int => @intCast(image_id),
         .@"enum" => @backingInt(image_id),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
 
     if (idx >= image_cache.items.len) {

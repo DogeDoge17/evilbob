@@ -276,12 +276,12 @@ pub inline fn getMapTileSafe(x: anytype, y: anytype) ?u32 {
     const ux = @as(usize, switch (@typeInfo(@TypeOf(x))) {
         .float => @intFromFloat(x),
         .int => @intCast(x),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
     const uy = @as(usize, switch (@typeInfo(@TypeOf(y))) {
         .float => @intFromFloat(y),
         .int => @intCast(y),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
 
     return @backingInt(worldMap[uy][ux]);
@@ -297,12 +297,12 @@ pub inline fn getFloorTileSafe(x: anytype, y: anytype) ?u32 {
     const ux = @as(usize, switch (@typeInfo(@TypeOf(x))) {
         .float => @intFromFloat(x),
         .int => @intCast(x),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
     const uy = @as(usize, switch (@typeInfo(@TypeOf(y))) {
         .float => @intFromFloat(y),
         .int => @intCast(y),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
 
     return @backingInt(floorMap[uy][ux]);
@@ -318,12 +318,12 @@ pub inline fn getCeilingTileSafe(x: anytype, y: anytype) ?u32 {
     const ux = @as(usize, switch (@typeInfo(@TypeOf(x))) {
         .float => @intFromFloat(x),
         .int => @intCast(x),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
     const uy = @as(usize, switch (@typeInfo(@TypeOf(y))) {
         .float => @intFromFloat(y),
         .int => @intCast(y),
-        else => return null,
+        else => @compileError("not a number you goober"),
     });
 
     return @backingInt(ceilingMap[uy][ux]);
