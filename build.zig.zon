@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.17.1",
     .dependencies = .{
         .miniaudio_c = .{
-            .url = "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.23.tar.gz",
-            .hash = "N-V-__8AAPu4vwC_P5AHlL_kEON58uGgrDcJSjGq9Hc5yadh",
+            .url = "https://github.com/mackron/miniaudio/archive/refs/tags/0.11.26.tar.gz",
+            .hash = "N-V-__8AAOYywgAhjsrAElPOjbuG-0yZyujq-XyG4tf353h2",
         },
         .zig_minifb = .{
             .url = "git+https://github.com/DogeDoge17/zig-minifb#59c972837cf78f7e7d09e1d66c883ce7e0a4dcd2",
